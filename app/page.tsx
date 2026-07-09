@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
+import AppLogo from '../components/AppLogo';
 
 // Interfaces
 interface Player {
@@ -1060,7 +1061,12 @@ export default function Home() {
       isCustom: true,
     };
 
-    // Save to PostgreSQL via API
+    // Save locally first for robust instant updates
+    const localPlayers = [newPlayer, ...players.filter(p => p.id !== newPlayer.id)];
+    savePlayersToLocalStorage(localPlayers);
+    setSelectedPlayerIds((prev) => [newPlayer.id, ...prev]);
+
+    // Background sync with database API
     fetch('/api/players', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1069,10 +1075,8 @@ export default function Home() {
       .then((res) => res.json())
       .then((savedPlayer) => {
         if (savedPlayer && !savedPlayer.error) {
-          const updatedPlayers = [savedPlayer, ...players.filter(p => p.id !== savedPlayer.id)];
+          const updatedPlayers = [savedPlayer, ...players.filter(p => p.id !== savedPlayer.id && p.id !== newPlayer.id)];
           savePlayersToLocalStorage(updatedPlayers);
-          // Auto-select this player in New Game setup
-          setSelectedPlayerIds((prev) => [savedPlayer.id, ...prev]);
         }
       })
       .catch((err) => console.error("Error saving player to database:", err));
@@ -1099,7 +1103,11 @@ export default function Home() {
       averageScore: editPlayerAverage,
     };
 
-    // Update in PostgreSQL via API
+    // Update locally first for instant feedback
+    const localPlayers = players.map((p) => (p.id === editingPlayerId ? { ...p, ...updatedPlayer } : p));
+    savePlayersToLocalStorage(localPlayers);
+
+    // Sync update to the database
     fetch(`/api/players/${editingPlayerId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -1424,8 +1432,8 @@ export default function Home() {
         <div className="w-full max-w-md bg-surface-container border-2 border-surface-variant rounded-3xl p-8 shadow-2xl relative z-10 animate-pop">
           {/* Brand Logo / Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary-container text-on-primary-container mb-4 shadow-lg border-b-4 border-black">
-              <span className="font-display font-black text-2xl tracking-tighter">PL</span>
+            <div className="mb-4 flex justify-center">
+              <AppLogo className="w-28 h-28 hover:scale-105 transition-transform duration-300" />
             </div>
             <h1 className="font-display font-black text-3xl text-primary-container tracking-tighter uppercase">
               jogatina
@@ -1574,9 +1582,7 @@ export default function Home() {
         {/* Header */}
         <div className="w-full max-w-5xl mx-auto flex justify-between items-center mb-10 relative z-10">
           <div className="flex items-center gap-3">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary-container text-on-primary-container shadow-md border-b-2 border-black">
-              <span className="font-display font-black text-xl tracking-tighter">PL</span>
-            </div>
+            <AppLogo className="w-14 h-14 hover:scale-105 transition-transform duration-300" />
             <div>
               <h1 className="font-display font-black text-2xl text-primary-container tracking-tighter uppercase leading-none">
                 JOGATINA - PLACAR
@@ -2150,16 +2156,19 @@ export default function Home() {
                         <button
                           onClick={() => {
                             if (confirm(`Excluir jogador ${p.name}?`)) {
-                              // Delete from PostgreSQL via API
+                              // Optimistic delete: update local state instantly
+                              const updatedPlayers = players.filter((item) => item.id !== p.id);
+                              savePlayersToLocalStorage(updatedPlayers);
+                              setSelectedPlayerIds((prev) => prev.filter((id) => id !== p.id));
+
+                              // Request delete on backend database (if exists/fails, local state is already correctly updated)
                               fetch(`/api/players/${p.id}`, {
                                 method: 'DELETE',
                               })
                                 .then((res) => res.json())
                                 .then((resData) => {
-                                  if (resData && !resData.error) {
-                                    const updatedPlayers = players.filter((item) => item.id !== p.id);
-                                    savePlayersToLocalStorage(updatedPlayers);
-                                    setSelectedPlayerIds((prev) => prev.filter((id) => id !== p.id));
+                                  if (resData && resData.error) {
+                                    console.warn("Backend deletion response:", resData.error);
                                   }
                                 })
                                 .catch((err) => console.error("Error deleting player from database:", err));
