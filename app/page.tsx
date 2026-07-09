@@ -820,6 +820,21 @@ export default function Home() {
     }
   }, []);
 
+  // Dynamically fetch up-to-date players from database when accessing player list or game registration
+  useEffect(() => {
+    if (isHydrated && (activeTab === 'players' || activeTab === 'new_game')) {
+      fetch('/api/players')
+        .then((res) => res.json())
+        .then((dbPlayers) => {
+          if (Array.isArray(dbPlayers) && dbPlayers.length > 0) {
+            setPlayers(dbPlayers);
+            localStorage.setItem('flip7_players', JSON.stringify(dbPlayers));
+          }
+        })
+        .catch((err) => console.error("Error refreshing players from database:", err));
+    }
+  }, [activeTab, isHydrated]);
+
   // Save changes to local storage helper
   const savePlayersToLocalStorage = (updatedPlayers: Player[]) => {
     setPlayers(updatedPlayers);
