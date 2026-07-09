@@ -13,6 +13,8 @@ import {
   Plus,
   User,
   UserPlus,
+  Edit2,
+  Trash2,
   Star,
   MoreVertical,
   Eye,
@@ -29,6 +31,8 @@ import {
   Gamepad2,
   Sparkles
 } from 'lucide-react';
+
+import { supabase } from '../lib/supabase';
 
 // Interfaces
 interface Player {
@@ -156,6 +160,17 @@ const INITIAL_PLAYERS: Player[] = [
     averageScore: 165,
     lastPlayed: 'Hoje',
   },
+];
+
+const PRESET_AVATARS: string[] = [
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuD6pa0w5xpTZvrK_3uvM1dVoxkye3hsEeSPbHjKscHfobDyn_1OPGmpPEpFuqLlB1cupPScEFS6Klv4UvmsJ1gksOkuPot9sgnCqIWZvpnONcvV3pR2z1QDu6c3jWxb4Wbu0Iet1DMhuXVvuNEpg2XHsQoW_vTEImQyOlhqfpOn-w70yfNBOmNe0iLweBemHQC4jfL6k2hz9VmumeZLYBnjOfEO6tv8s6yNrSOs_NOiDqtw7R7rjDehSw',
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuALr3M0R7WX9w0I18Zt_lPiE7GpggmvfxQ4kDxLM09MMVQebI_bnLDzBzoRcb7kymV5P8DcZ5S4spm3JetUQg9zDbueAwDSuSG8ww-SMZK2GltDWwt4kQqx-ipU0GGd4FrXnGklXKgOSQn9c8qj4Kwu8tEdVrLCcIxsnA3lfT4GKDnCSa3OB-7e5fUhCLwPGQ_hBQ4C6wouoVzRmQuy_8ALQ_FThrOqROIeLqQE2L72qsfidyGfTCr2FQ',
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuB8m_2_6IIJy1TTbhHrcHIUeG00aHs0g_HLzESHhHL3ei1am90AypSYcj3ToPlur5WtCNNffsj1bUJcDabDqUfSYBX8uJkkv_-hIiW5Dy0wMLJit3_1kb-ofO-r7ojEDuAxYLdACV_MFU-gIKktcGLdNnzTAiYlYM26MkzVskBt2-CAAirQnRHTb_mrTA3mn8Obs6jWFMa8DowHoynCNwrefXLVTsvBQINNh_G0zZ-_vNQ4rauhsUUp7w',
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuCaZ4tNKiAoYP0kwHUknsEVv98mctmG36cLK2fuDll4zckwqTl0dMrBrzoY_-tjG9Vjc7sPNcSS8J7wsgjTPf3yi5ONBkC8Pe43JDdIW5RUkNiTDmrGm49KnJviA4gINsn5xLaMlTpIP0KXYbq2OEdWMZPlKkfvgrIm72fngAqWQCCMpCgSeNG-G5uleX126_Yg_8IyFxdIAT4Tqdl7r--PhtcTF6nKVis-XT-qQgeE1jgGMgGpLg5XAg',
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuCXB6xyduz4RfBXW754t5m5r_czyPI_ZHyMqv-TiVa6EXvtD5vVybQYg0J4vBxntoiD6IwOHETzINFQazZdS3OeZg5ZtXu5d7za2NskKyIGosAnrDkiX0ERd7tm514euMNe1EwiPcHD6F8Tzkpoht1YwdDbXpUXKJkekOKu0DtivzQcpebX3t1veA76d-29OzCnkPD6fKjYTCC4zZrme4ETYlJXP1w6PeqU9XgiTaSNgDtf1hDfvVT0Yw',
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuAE1nvKimAgCLNKwsd8Wuwzk_MMJMg785Bg9AeN4pn9IQijUFfrA-Vgj-OFmXEwpLXxJ4R9NPSpud9FA538t7N3Z5d8U72Ka_edn8w_zuxMhoRcjTGaO_ECXH9XEnzjIwUIOiRY0AAgb-J7T1-5E0cwRA6aeK-4ZHPvuywC_k8OS5oE_Jft-CBnQfed9QruFgpiY8nRLFB8BR2Wg_OLIBqrRl1Vy3P7vHeN-VgsXEQ_u5TnLcs8fcI18Q',
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuB5_tyXRXZi25g1bOE8uC8B1qm43fmOkiW9Nn7lgmeZJRN8i4H6x_A8SZMTQigTEVoBDq1zvQjV2pimicSEBZjI5L7mNYtam42j6ejd-Uwp71lBzPUljpg7bN35aaD3KA-JXHi0td-oyprb09spib6m72VUFGlKpeNOPMzYh0QB7DXLcdip9WtxT0hZR5rXJ7PxJl7GoZuEqHJFocKRTVZQvTBohD2aQFWu93ACFGmDe5rwkGpG-E1vuQ',
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuCDsF2Y-K_zyerOuJURBBAeBtCLRG5RE8wnwbIOfUVY-o-7u7O1HLaQhxrOPtrvJWhqQa3yFTvuqkbtPfA6srzxZwKZcYFlBLXyGz-lKY0qY1RWEKNn_B25mrpOMZSo4YXfgoRV9ypWNI99p1GbbEPW-_VwQYj6U5gYx_aG_hbjUr0wYFSVANrM0EASOAxd9J2ZcqpVaYCS7MmtoG1Mtpvo9kZdAvBSm4POf3Fv1blmiEmAQYe3luOwOQ'
 ];
 
 interface GameConfig {
@@ -672,6 +687,18 @@ export default function Home() {
   const [isAddPlayerModalOpen, setIsAddPlayerModalOpen] = useState<boolean>(false);
   const [addPlayerName, setAddPlayerName] = useState<string>('');
   const [addPlayerStyle, setAddPlayerStyle] = useState<'Agressivo' | 'Agressiva' | 'Conservador' | 'Equilibrado' | 'Coringa'>('Equilibrado');
+  const [addPlayerAvatar, setAddPlayerAvatar] = useState<string>('');
+  const [addPlayerWins, setAddPlayerWins] = useState<number>(0);
+  const [addPlayerAverage, setAddPlayerAverage] = useState<number>(0);
+
+  // Edit Player Modal states
+  const [isEditPlayerModalOpen, setIsEditPlayerModalOpen] = useState<boolean>(false);
+  const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
+  const [editPlayerName, setEditPlayerName] = useState<string>('');
+  const [editPlayerStyle, setEditPlayerStyle] = useState<'Agressivo' | 'Agressiva' | 'Conservador' | 'Equilibrado' | 'Coringa'>('Equilibrado');
+  const [editPlayerAvatar, setEditPlayerAvatar] = useState<string>('');
+  const [editPlayerWins, setEditPlayerWins] = useState<number>(0);
+  const [editPlayerAverage, setEditPlayerAverage] = useState<number>(0);
 
   // Live scoring accumulated round scores state
   const [currentRoundLogs, setCurrentRoundLogs] = useState<{ playerName: string; message: string; points: number; isBusted: boolean; isFlip7: boolean }[]>([]);
@@ -679,9 +706,20 @@ export default function Home() {
   // Timer Ref for live game
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load from local storage
+  // Load from local storage and API
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Fetch players from database API
+      fetch('/api/players')
+        .then((res) => res.json())
+        .then((dbPlayers) => {
+          if (Array.isArray(dbPlayers) && dbPlayers.length > 0) {
+            setPlayers(dbPlayers);
+            localStorage.setItem('flip7_players', JSON.stringify(dbPlayers));
+          }
+        })
+        .catch((err) => console.error("Error loading players from database:", err));
+
       const storedPlayers = localStorage.getItem('flip7_players');
       const storedHistory = localStorage.getItem('flip7_history');
       const storedActiveTable = localStorage.getItem('flip7_active_table');
@@ -726,6 +764,39 @@ export default function Home() {
         }
       }
 
+      // Supabase listener
+      let unsubscribeAuth: (() => void) | null = null;
+      if (supabase) {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session && session.user) {
+            const userSession = {
+              email: session.user.email || '',
+              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Jogador'
+            };
+            setCurrentUser(userSession);
+            setIsLoggedIn(true);
+            localStorage.setItem('flip7_logged_in_user', JSON.stringify(userSession));
+          }
+        });
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+          if (session && session.user) {
+            const userSession = {
+              email: session.user.email || '',
+              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Jogador'
+            };
+            setCurrentUser(userSession);
+            setIsLoggedIn(true);
+            localStorage.setItem('flip7_logged_in_user', JSON.stringify(userSession));
+          } else {
+            setCurrentUser(null);
+            setIsLoggedIn(false);
+            localStorage.removeItem('flip7_logged_in_user');
+          }
+        });
+        unsubscribeAuth = subscription.unsubscribe;
+      }
+
       setTimeout(() => {
         setPlayers(parsedPlayers);
         setHistory(parsedHistory);
@@ -733,7 +804,7 @@ export default function Home() {
         if (storedGame) {
           setSelectedGame(storedGame);
         }
-        if (parsedUser) {
+        if (!supabase && parsedUser) {
           setCurrentUser(parsedUser);
           setIsLoggedIn(true);
         }
@@ -741,6 +812,10 @@ export default function Home() {
         setSelectedPlayerIds(['sora', 'leo', 'maya', 'alex']);
         setIsHydrated(true);
       }, 0);
+
+      return () => {
+        if (unsubscribeAuth) unsubscribeAuth();
+      };
     }
   }, []);
 
@@ -820,7 +895,7 @@ export default function Home() {
 
   // --- ACTIONS ---
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
     if (!loginEmail.trim() || !loginPassword.trim()) {
@@ -828,26 +903,55 @@ export default function Home() {
       return;
     }
 
-    const storedUsersStr = localStorage.getItem('flip7_users');
-    const usersList = storedUsersStr ? JSON.parse(storedUsersStr) : [{ name: 'On Idéias Criativas', email: 'admin@flip7.com', password: 'senha123' }];
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: loginEmail.trim(),
+          password: loginPassword.trim(),
+        });
 
-    const matchedUser = usersList.find(
-      (u: any) => u.email.toLowerCase() === loginEmail.trim().toLowerCase() && u.password === loginPassword.trim()
-    );
+        if (error) {
+          setAuthError('Erro ao fazer login: ' + error.message);
+          return;
+        }
 
-    if (matchedUser) {
-      const userSession = { email: matchedUser.email, name: matchedUser.name };
-      localStorage.setItem('flip7_logged_in_user', JSON.stringify(userSession));
-      setCurrentUser(userSession);
-      setIsLoggedIn(true);
-      setLoginEmail('');
-      setLoginPassword('');
+        if (data && data.user) {
+          const userSession = {
+            email: data.user.email || '',
+            name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'Jogador'
+          };
+          localStorage.setItem('flip7_logged_in_user', JSON.stringify(userSession));
+          setCurrentUser(userSession);
+          setIsLoggedIn(true);
+          setLoginEmail('');
+          setLoginPassword('');
+        }
+      } catch (err: any) {
+        setAuthError('Ocorreu um erro ao conectar com o Supabase.');
+        console.error(err);
+      }
     } else {
-      setAuthError('E-mail ou senha incorretos. Tente admin@flip7.com / senha123');
+      const storedUsersStr = localStorage.getItem('flip7_users');
+      const usersList = storedUsersStr ? JSON.parse(storedUsersStr) : [{ name: 'On Idéias Criativas', email: 'admin@flip7.com', password: 'senha123' }];
+
+      const matchedUser = usersList.find(
+        (u: any) => u.email.toLowerCase() === loginEmail.trim().toLowerCase() && u.password === loginPassword.trim()
+      );
+
+      if (matchedUser) {
+        const userSession = { email: matchedUser.email, name: matchedUser.name };
+        localStorage.setItem('flip7_logged_in_user', JSON.stringify(userSession));
+        setCurrentUser(userSession);
+        setIsLoggedIn(true);
+        setLoginEmail('');
+        setLoginPassword('');
+      } else {
+        setAuthError('E-mail ou senha incorretos. Tente admin@flip7.com / senha123');
+      }
     }
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
     if (!registerName.trim() || !registerEmail.trim() || !registerPassword.trim()) {
@@ -855,38 +959,83 @@ export default function Home() {
       return;
     }
 
-    const storedUsersStr = localStorage.getItem('flip7_users');
-    const usersList = storedUsersStr ? JSON.parse(storedUsersStr) : [{ name: 'On Idéias Criativas', email: 'admin@flip7.com', password: 'senha123' }];
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email: registerEmail.trim(),
+          password: registerPassword.trim(),
+          options: {
+            data: {
+              name: registerName.trim(),
+            },
+          },
+        });
 
-    const emailExists = usersList.some((u: any) => u.email.toLowerCase() === registerEmail.trim().toLowerCase());
-    if (emailExists) {
-      setAuthError('Este e-mail já está cadastrado.');
-      return;
+        if (error) {
+          setAuthError('Erro ao se cadastrar: ' + error.message);
+          return;
+        }
+
+        if (data && data.user) {
+          const userSession = {
+            email: data.user.email || '',
+            name: data.user.user_metadata?.name || registerName.trim()
+          };
+          localStorage.setItem('flip7_logged_in_user', JSON.stringify(userSession));
+          setCurrentUser(userSession);
+          setIsLoggedIn(true);
+
+          // Reset inputs
+          setRegisterName('');
+          setRegisterEmail('');
+          setRegisterPassword('');
+          setIsRegisterMode(false);
+        }
+      } catch (err: any) {
+        setAuthError('Ocorreu um erro ao conectar com o Supabase.');
+        console.error(err);
+      }
+    } else {
+      const storedUsersStr = localStorage.getItem('flip7_users');
+      const usersList = storedUsersStr ? JSON.parse(storedUsersStr) : [{ name: 'On Idéias Criativas', email: 'admin@flip7.com', password: 'senha123' }];
+
+      const emailExists = usersList.some((u: any) => u.email.toLowerCase() === registerEmail.trim().toLowerCase());
+      if (emailExists) {
+        setAuthError('Este e-mail já está cadastrado.');
+        return;
+      }
+
+      const newUser = {
+        name: registerName.trim(),
+        email: registerEmail.trim().toLowerCase(),
+        password: registerPassword.trim(),
+      };
+
+      const updatedUsers = [...usersList, newUser];
+      localStorage.setItem('flip7_users', JSON.stringify(updatedUsers));
+
+      // Auto-login
+      const userSession = { email: newUser.email, name: newUser.name };
+      localStorage.setItem('flip7_logged_in_user', JSON.stringify(userSession));
+      setCurrentUser(userSession);
+      setIsLoggedIn(true);
+
+      // Reset inputs
+      setRegisterName('');
+      setRegisterEmail('');
+      setRegisterPassword('');
+      setIsRegisterMode(false);
     }
-
-    const newUser = {
-      name: registerName.trim(),
-      email: registerEmail.trim().toLowerCase(),
-      password: registerPassword.trim(),
-    };
-
-    const updatedUsers = [...usersList, newUser];
-    localStorage.setItem('flip7_users', JSON.stringify(updatedUsers));
-
-    // Auto-login
-    const userSession = { email: newUser.email, name: newUser.name };
-    localStorage.setItem('flip7_logged_in_user', JSON.stringify(userSession));
-    setCurrentUser(userSession);
-    setIsLoggedIn(true);
-
-    // Reset inputs
-    setRegisterName('');
-    setRegisterEmail('');
-    setRegisterPassword('');
-    setIsRegisterMode(false);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.error("Error signing out from Supabase:", err);
+      }
+    }
     localStorage.removeItem('flip7_logged_in_user');
     setCurrentUser(null);
     setIsLoggedIn(false);
@@ -897,37 +1046,76 @@ export default function Home() {
     e.preventDefault();
     if (!addPlayerName.trim()) return;
 
-    // Pick random avatar from a list of predefined gamer images to ensure quality looks
-    const randomAvatars = [
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCaZ4tNKiAoYP0kwHUknsEVv98mctmG36cLK2fuDll4zckwqTl0dMrBrzoY_-tjG9Vjc7sPNcSS8J7wsgjTPf3yi5ONBkC8Pe43JDdIW5RUkNiTDmrGm49KnJviA4gINsn5xLaMlTpIP0KXYbq2OEdWMZPlKkfvgrIm72fngAqWQCCMpCgSeNG-G5uleX126_Yg_8IyFxdIAT4Tqdl7r--PhtcTF6nKVis-XT-qQgeE1jgGMgGpLg5XAg',
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCXB6xyduz4RfBXW754t5m5r_czyPI_ZHyMqv-TiVa6EXvtD5vVybQYg0J4vBxntoiD6IwOHETzINFQazZdS3OeZg5ZtXu5d7za2NskKyIGosAnrDkiX0ERd7tm514euMNe1EwiPcHD6F8Tzkpoht1YwdDbXpUXKJkekOKu0DtivzQcpebX3t1veA76d-29OzCnkPD6fKjYTCC4zZrme4ETYlJXP1w6PeqU9XgiTaSNgDtf1hDfvVT0Yw',
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAE1nvKimAgCLNKwsd8Wuwzk_MMJMg785Bg9AeN4pn9IQijUFfrA-Vgj-OFmXEwpLXxJ4R9NPSpud9FA538t7N3Z5d8U72Ka_edn8w_zuxMhoRcjTGaO_ECXH9XEnzjIwUIOiRY0AAgb-J7T1-5E0cwRA6aeK-4ZHPvuywC_k8OS5oE_Jft-CBnQfed9QruFgpiY8nRLFB8BR2Wg_OLIBqrRl1Vy3P7vHeN-VgsXEQ_u5TnLcs8fcI18Q',
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuB5_tyXRXZi25g1bOE8uC8B1qm43fmOkiW9Nn7lgmeZJRN8i4H6x_A8SZMTQigTEVoBDq1zvQjV2pimicSEBZjI5L7mNYtam42j6ejd-Uwp71lBzPUljpg7bN35aaD3KA-JXHi0td-oyprb09spib6m72VUFGlKpeNOPMzYh0QB7DXLcdip9WtxT0hZR5rXJ7PxJl7GoZuEqHJFocKRTVZQvTBohD2aQFWu93ACFGmDe5rwkGpG-E1vuQ',
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCDsF2Y-K_zyerOuJURBBAeBtCLRG5RE8wnwbIOfUVY-o-7u7O1HLaQhxrOPtrvJWhqQa3yFTvuqkbtPfA6srzxZwKZcYFlBLXyGz-lKY0qY1RWEKNn_B25mrpOMZSo4YXfgoRV9ypWNI99p1GbbEPW-_VwQYj6U5gYx_aG_hbjUr0wYFSVANrM0EASOAxd9J2ZcqpVaYCS7MmtoG1Mtpvo9kZdAvBSm4POf3Fv1blmiEmAQYe3luOwOQ'
-    ];
-    const pickedAvatar = randomAvatars[Math.floor(Math.random() * randomAvatars.length)];
+    // Pick avatar (use selected preset, or a random preset if none selected)
+    const finalAvatar = addPlayerAvatar || PRESET_AVATARS[Math.floor(Math.random() * PRESET_AVATARS.length)];
 
     const newPlayer: Player = {
       id: 'custom_' + Date.now(),
       name: addPlayerName,
       style: addPlayerStyle,
-      avatar: pickedAvatar,
-      totalWins: 0,
-      averageScore: 0,
+      avatar: finalAvatar,
+      totalWins: addPlayerWins,
+      averageScore: addPlayerAverage,
       lastPlayed: 'Hoje',
       isCustom: true,
     };
 
-    const updatedPlayers = [newPlayer, ...players];
-    savePlayersToLocalStorage(updatedPlayers);
-    
-    // Auto-select this player in New Game setup
-    setSelectedPlayerIds((prev) => [newPlayer.id, ...prev]);
+    // Save to PostgreSQL via API
+    fetch('/api/players', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newPlayer),
+    })
+      .then((res) => res.json())
+      .then((savedPlayer) => {
+        if (savedPlayer && !savedPlayer.error) {
+          const updatedPlayers = [savedPlayer, ...players.filter(p => p.id !== savedPlayer.id)];
+          savePlayersToLocalStorage(updatedPlayers);
+          // Auto-select this player in New Game setup
+          setSelectedPlayerIds((prev) => [savedPlayer.id, ...prev]);
+        }
+      })
+      .catch((err) => console.error("Error saving player to database:", err));
 
     // Reset inputs
     setAddPlayerName('');
     setAddPlayerStyle('Equilibrado');
+    setAddPlayerAvatar('');
+    setAddPlayerWins(0);
+    setAddPlayerAverage(0);
     setIsAddPlayerModalOpen(false);
+  };
+
+  // Edit existing Player
+  const handleEditPlayer = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPlayerId || !editPlayerName.trim()) return;
+
+    const updatedPlayer = {
+      name: editPlayerName,
+      style: editPlayerStyle,
+      avatar: editPlayerAvatar || PRESET_AVATARS[0],
+      totalWins: editPlayerWins,
+      averageScore: editPlayerAverage,
+    };
+
+    // Update in PostgreSQL via API
+    fetch(`/api/players/${editingPlayerId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedPlayer),
+    })
+      .then((res) => res.json())
+      .then((savedPlayer) => {
+        if (savedPlayer && !savedPlayer.error) {
+          const updatedPlayers = players.map((p) => (p.id === editingPlayerId ? savedPlayer : p));
+          savePlayersToLocalStorage(updatedPlayers);
+        }
+      })
+      .catch((err) => console.error("Error updating player in database:", err));
+
+    setIsEditPlayerModalOpen(false);
+    setEditingPlayerId(null);
   };
 
   // Toggle player selection for a new game
@@ -1320,29 +1508,7 @@ export default function Home() {
                 ACESSAR JOGATINA
               </button>
 
-              {/* Quick Fill presets */}
-              <div className="pt-6 border-t border-surface-variant/50">
-                <p className="font-mono text-[9px] text-on-surface-variant uppercase tracking-widest text-center mb-3">
-                  Acesso rápido para demonstração
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLoginEmail('admin@flip7.com');
-                    setLoginPassword('senha123');
-                    setAuthError('');
-                  }}
-                  className="w-full py-2.5 bg-surface-container-high hover:bg-surface-container-highest border border-surface-variant rounded-xl flex items-center justify-between px-4 transition-all text-left group cursor-pointer"
-                >
-                  <div>
-                    <p className="text-xs font-bold text-primary">Conta Demonstrativa</p>
-                    <p className="text-[10px] text-on-surface-variant">admin@flip7.com • senha123</p>
-                  </div>
-                  <span className="text-[10px] font-mono font-bold text-primary-container group-hover:underline">
-                    Preencher →
-                  </span>
-                </button>
-              </div>
+
             </form>
           ) : (
             <form onSubmit={handleRegister} className="space-y-4">
@@ -1966,18 +2132,44 @@ export default function Home() {
 
                     <div className="mt-4 pt-3 border-t border-surface-variant/40 flex justify-between items-center text-xs text-on-surface-variant">
                       <span className="font-medium">Visto por último: {p.lastPlayed}</span>
-                      {p.isCustom && (
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => {
+                            setEditingPlayerId(p.id);
+                            setEditPlayerName(p.name);
+                            setEditPlayerStyle(p.style);
+                            setEditPlayerAvatar(p.avatar);
+                            setEditPlayerWins(p.totalWins);
+                            setEditPlayerAverage(p.averageScore);
+                            setIsEditPlayerModalOpen(true);
+                          }}
+                          className="text-primary hover:text-primary-container flex items-center gap-1 font-mono text-[11px] uppercase tracking-wider font-bold transition-all cursor-pointer"
+                        >
+                          <Edit2 className="w-3 h-3" /> Editar
+                        </button>
                         <button
                           onClick={() => {
                             if (confirm(`Excluir jogador ${p.name}?`)) {
-                              savePlayersToLocalStorage(players.filter((item) => item.id !== p.id));
+                              // Delete from PostgreSQL via API
+                              fetch(`/api/players/${p.id}`, {
+                                method: 'DELETE',
+                              })
+                                .then((res) => res.json())
+                                .then((resData) => {
+                                  if (resData && !resData.error) {
+                                    const updatedPlayers = players.filter((item) => item.id !== p.id);
+                                    savePlayersToLocalStorage(updatedPlayers);
+                                    setSelectedPlayerIds((prev) => prev.filter((id) => id !== p.id));
+                                  }
+                                })
+                                .catch((err) => console.error("Error deleting player from database:", err));
                             }
                           }}
-                          className="text-error hover:underline"
+                          className="text-error hover:text-red-400 flex items-center gap-1 font-mono text-[11px] uppercase tracking-wider font-bold transition-all cursor-pointer"
                         >
-                          Remover
+                          <Trash2 className="w-3 h-3" /> Remover
                         </button>
-                      )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -2622,10 +2814,75 @@ export default function Home() {
                     className="w-full bg-surface-container-highest border-2 border-outline-variant rounded-xl px-4 py-3 text-on-surface focus:border-tertiary focus:ring-0 focus:outline-none transition-all appearance-none font-semibold cursor-pointer"
                   >
                     <option value="Agressivo">Agressivo (Push-your-luck!)</option>
+                    <option value="Agressiva">Agressiva (Push-your-luck!)</option>
                     <option value="Conservador">Conservador (Bank safe)</option>
                     <option value="Equilibrado">Equilibrado (Matemático)</option>
                     <option value="Coringa">Coringa (Imprevisível)</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block font-mono text-[10px] font-bold text-on-surface-variant mb-2 uppercase tracking-wider">
+                    SELECIONE O AVATAR
+                  </label>
+                  <div className="grid grid-cols-4 gap-3 mb-3">
+                    {PRESET_AVATARS.map((avatarUrl, idx) => {
+                      const isSelected = addPlayerAvatar === avatarUrl;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setAddPlayerAvatar(avatarUrl)}
+                          className={`relative w-12 h-12 rounded-full overflow-hidden border-2 cursor-pointer transition-all ${
+                            isSelected ? 'border-primary scale-110 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'
+                          }`}
+                        >
+                          <Image
+                            src={avatarUrl}
+                            alt={`Avatar ${idx + 1}`}
+                            fill
+                            sizes="48px"
+                            referrerPolicy="no-referrer"
+                            className="object-cover"
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <input
+                    type="text"
+                    value={addPlayerAvatar}
+                    onChange={(e) => setAddPlayerAvatar(e.target.value)}
+                    placeholder="Ou cole a URL de uma imagem personalizada"
+                    className="w-full bg-surface-container-highest border-2 border-outline-variant rounded-xl px-4 py-2 text-xs text-on-surface focus:border-tertiary focus:ring-0 focus:outline-none transition-all font-mono"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-mono text-[10px] font-bold text-on-surface-variant mb-2 uppercase tracking-wider">
+                      VITÓRIAS INICIAIS
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={addPlayerWins}
+                      onChange={(e) => setAddPlayerWins(parseInt(e.target.value) || 0)}
+                      className="w-full bg-surface-container-highest border-2 border-outline-variant rounded-xl px-4 py-3 text-on-surface focus:border-tertiary focus:ring-0 focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-mono text-[10px] font-bold text-on-surface-variant mb-2 uppercase tracking-wider">
+                      MÉDIA DE PONTOS
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={addPlayerAverage}
+                      onChange={(e) => setAddPlayerAverage(parseInt(e.target.value) || 0)}
+                      className="w-full bg-surface-container-highest border-2 border-outline-variant rounded-xl px-4 py-3 text-on-surface focus:border-tertiary focus:ring-0 focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
                 </div>
 
                 <div className="pt-4">
@@ -2634,6 +2891,144 @@ export default function Home() {
                     className="w-full bg-primary-container text-on-primary-container py-4 rounded-xl font-mono text-xs font-bold tracking-widest brutalist-border flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all cursor-pointer uppercase"
                   >
                     <CheckCircle2 className="w-4 h-4" /> CONFIRMAR CADASTRO
+                  </button>
+                </div>
+              </form>
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- EDIT PLAYER MODAL --- */}
+      {isEditPlayerModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-margin-mobile">
+          <div 
+            onClick={() => {
+              setIsEditPlayerModalOpen(false);
+              setEditingPlayerId(null);
+            }} 
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm cursor-pointer"
+          ></div>
+          
+          <div className="bg-surface-container rounded-2xl w-full max-w-md relative z-10 border-2 border-primary-container glow-primary overflow-hidden animate-pop">
+            <div className="p-6 space-y-6">
+              
+              <div className="flex justify-between items-center">
+                <h3 className="font-display font-black text-xl text-primary uppercase">Editar Jogador</h3>
+                <button 
+                  onClick={() => {
+                    setIsEditPlayerModalOpen(false);
+                    setEditingPlayerId(null);
+                  }} 
+                  className="text-on-surface-variant hover:text-error transition-colors cursor-pointer p-1"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleEditPlayer} className="space-y-4">
+                <div>
+                  <label className="block font-mono text-[10px] font-bold text-on-surface-variant mb-2 uppercase tracking-wider">
+                    NOME DO JOGADOR
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editPlayerName}
+                    onChange={(e) => setEditPlayerName(e.target.value)}
+                    placeholder="Ex: Rick Sanchez"
+                    className="w-full bg-surface-container-highest border-2 border-outline-variant rounded-xl px-4 py-3 text-on-surface focus:border-tertiary focus:ring-0 focus:outline-none transition-all font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-mono text-[10px] font-bold text-on-surface-variant mb-2 uppercase tracking-wider">
+                    ESTILO DE JOGO
+                  </label>
+                  <select
+                    value={editPlayerStyle}
+                    onChange={(e) => setEditPlayerStyle(e.target.value as any)}
+                    className="w-full bg-surface-container-highest border-2 border-outline-variant rounded-xl px-4 py-3 text-on-surface focus:border-tertiary focus:ring-0 focus:outline-none transition-all appearance-none font-semibold cursor-pointer"
+                  >
+                    <option value="Agressivo">Agressivo (Push-your-luck!)</option>
+                    <option value="Agressiva">Agressiva (Push-your-luck!)</option>
+                    <option value="Conservador">Conservador (Bank safe)</option>
+                    <option value="Equilibrado">Equilibrado (Matemático)</option>
+                    <option value="Coringa">Coringa (Imprevisível)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-mono text-[10px] font-bold text-on-surface-variant mb-2 uppercase tracking-wider">
+                    SELECIONE O AVATAR
+                  </label>
+                  <div className="grid grid-cols-4 gap-3 mb-3">
+                    {PRESET_AVATARS.map((avatarUrl, idx) => {
+                      const isSelected = editPlayerAvatar === avatarUrl;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setEditPlayerAvatar(avatarUrl)}
+                          className={`relative w-12 h-12 rounded-full overflow-hidden border-2 cursor-pointer transition-all ${
+                            isSelected ? 'border-primary scale-110 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'
+                          }`}
+                        >
+                          <Image
+                            src={avatarUrl}
+                            alt={`Avatar ${idx + 1}`}
+                            fill
+                            sizes="48px"
+                            referrerPolicy="no-referrer"
+                            className="object-cover"
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <input
+                    type="text"
+                    value={editPlayerAvatar}
+                    onChange={(e) => setEditPlayerAvatar(e.target.value)}
+                    placeholder="Ou cole a URL de uma imagem personalizada"
+                    className="w-full bg-surface-container-highest border-2 border-outline-variant rounded-xl px-4 py-2 text-xs text-on-surface focus:border-tertiary focus:ring-0 focus:outline-none transition-all font-mono"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-mono text-[10px] font-bold text-on-surface-variant mb-2 uppercase tracking-wider">
+                      VITÓRIAS DA LIGA
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editPlayerWins}
+                      onChange={(e) => setEditPlayerWins(parseInt(e.target.value) || 0)}
+                      className="w-full bg-surface-container-highest border-2 border-outline-variant rounded-xl px-4 py-3 text-on-surface focus:border-tertiary focus:ring-0 focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-mono text-[10px] font-bold text-on-surface-variant mb-2 uppercase tracking-wider">
+                      MÉDIA DE PONTOS
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editPlayerAverage}
+                      onChange={(e) => setEditPlayerAverage(parseInt(e.target.value) || 0)}
+                      className="w-full bg-surface-container-highest border-2 border-outline-variant rounded-xl px-4 py-3 text-on-surface focus:border-tertiary focus:ring-0 focus:outline-none transition-all font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <button
+                    type="submit"
+                    className="w-full bg-primary-container text-on-primary-container py-4 rounded-xl font-mono text-xs font-bold tracking-widest brutalist-border flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all cursor-pointer uppercase"
+                  >
+                    <CheckCircle2 className="w-4 h-4" /> SALVAR ALTERAÇÕES
                   </button>
                 </div>
               </form>
