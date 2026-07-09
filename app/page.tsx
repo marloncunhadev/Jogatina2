@@ -102,80 +102,7 @@ interface SimulatedTable {
 }
 
 // Initial Data
-const INITIAL_PLAYERS: Player[] = [
-  {
-    id: 'sora',
-    name: 'Sora',
-    style: 'Coringa',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD6pa0w5xpTZvrK_3uvM1dVoxkye3hsEeSPbHjKscHfobDyn_1OPGmpPEpFuqLlB1cupPScEFS6Klv4UvmsJ1gksOkuPot9sgnCqIWZvpnONcvV3pR2z1QDu6c3jWxb4Wbu0Iet1DMhuXVvuNEpg2XHsQoW_vTEImQyOlhqfpOn-w70yfNBOmNe0iLweBemHQC4jfL6k2hz9VmumeZLYBnjOfEO6tv8s6yNrSOs_NOiDqtw7R7rjDehSw',
-    totalWins: 42,
-    averageScore: 156,
-    lastPlayed: 'Ontem',
-  },
-  {
-    id: 'leo',
-    name: 'Leo',
-    style: 'Equilibrado',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuALr3M0R7WX9w0I18Zt_lPiE7GpggmvfxQ4kDxLM09MMVQebI_bnLDzBzoRcb7kymV5P8DcZ5S4spm3JetUQg9zDbueAwDSuSG8ww-SMZK2GltDWwt4kQqx-ipU0GGd4FrXnGklXKgOSQn9c8qj4Kwu8tEdVrLCcIxsnA3lfT4GKDnCSa3OB-7e5fUhCLwPGQ_hBQ4C6wouoVzRmQuy_8ALQ_FThrOqROIeLqQE2L72qsfidyGfTCr2FQ',
-    totalWins: 28,
-    averageScore: 132,
-    lastPlayed: '3 dias atrás',
-  },
-  {
-    id: 'maya',
-    name: 'Maya',
-    style: 'Agressiva',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB8m_2_6IIJy1TTbhHrcHIUeG00aHs0g_HLzESHhHL3ei1am90AypSYcj3ToPlur5WtCNNffsj1bUJcDabDqUfSYBX8uJkkv_-hIiW5Dy0wMLJit3_1kb-ofO-r7ojEDuAxYLdACV_MFU-gIKktcGLdNnzTAiYlYM26MkzVskBt2-CAAirQnRHTb_mrTA3mn8Obs6jWFMa8DowHoynCNwrefXLVTsvBQINNh_G0zZ-_vNQ4rauhsUUp7w',
-    totalWins: 15,
-    averageScore: 184,
-    lastPlayed: 'Hoje',
-  },
-  {
-    id: 'alex',
-    name: 'Alex "A"',
-    style: 'Equilibrado',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCaZ4tNKiAoYP0kwHUknsEVv98mctmG36cLK2fuDll4zckwqTl0dMrBrzoY_-tjG9Vjc7sPNcSS8J7wsgjTPf3yi5ONBkC8Pe43JDdIW5RUkNiTDmrGm49KnJviA4gINsn5xLaMlTpIP0KXYbq2OEdWMZPlKkfvgrIm72fngAqWQCCMpCgSeNG-G5uleX126_Yg_8IyFxdIAT4Tqdl7r--PhtcTF6nKVis-XT-qQgeE1jgGMgGpLg5XAg',
-    totalWins: 35,
-    averageScore: 148,
-    lastPlayed: '2 semanas atrás',
-  },
-  {
-    id: 'beatriz',
-    name: 'Beatriz',
-    style: 'Conservador',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCXB6xyduz4RfBXW754t5m5r_czyPI_ZHyMqv-TiVa6EXvtD5vVybQYg0J4vBxntoiD6IwOHETzINFQazZdS3OeZg5ZtXu5d7za2NskKyIGosAnrDkiX0ERd7tm514euMNe1EwiPcHD6F8Tzkpoht1YwdDbXpUXKJkekOKu0DtivzQcpebX3t1veA76d-29OzCnkPD6fKjYTCC4zZrme4ETYlJXP1w6PeqU9XgiTaSNgDtf1hDfvVT0Yw',
-    totalWins: 19,
-    averageScore: 122,
-    lastPlayed: '4 dias atrás',
-  },
-  {
-    id: 'carlos',
-    name: 'Carlos G.',
-    style: 'Conservador',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAE1nvKimAgCLNKwsd8Wuwzk_MMJMg785Bg9AeN4pn9IQijUFfrA-Vgj-OFmXEwpLXxJ4R9NPSpud9FA538t7N3Z5d8U72Ka_edn8w_zuxMhoRcjTGaO_ECXH9XEnzjIwUIOiRY0AAgb-J7T1-5E0cwRA6aeK-4ZHPvuywC_k8OS5oE_Jft-CBnQfed9QruFgpiY8nRLFB8BR2Wg_OLIBqrRl1Vy3P7vHeN-VgsXEQ_u5TnLcs8fcI18Q',
-    totalWins: 23,
-    averageScore: 115,
-    lastPlayed: 'Ontem',
-  },
-  {
-    id: 'diana',
-    name: 'Diana Z.',
-    style: 'Coringa',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB5_tyXRXZi25g1bOE8uC8B1qm43fmOkiW9Nn7lgmeZJRN8i4H6x_A8SZMTQigTEVoBDq1zvQjV2pimicSEBZjI5L7mNYtam42j6ejd-Uwp71lBzPUljpg7bN35aaD3KA-JXHi0td-oyprb09spib6m72VUFGlKpeNOPMzYh0QB7DXLcdip9WtxT0hZR5rXJ7PxJl7GoZuEqHJFocKRTVZQvTBohD2aQFWu93ACFGmDe5rwkGpG-E1vuQ',
-    totalWins: 30,
-    averageScore: 140,
-    lastPlayed: 'Hoje',
-  },
-  {
-    id: 'eduardo',
-    name: 'Eduardo',
-    style: 'Equilibrado',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCDsF2Y-K_zyerOuJURBBAeBtCLRG5RE8wnwbIOfUVY-o-7u7O1HLaQhxrOPtrvJWhqQa3yFTvuqkbtPfA6srzxZwKZcYFlBLXyGz-lKY0qY1RWEKNn_B25mrpOMZSo4YXfgoRV9ypWNI99p1GbbEPW-_VwQYj6U5gYx_aG_hbjUr0wYFSVANrM0EASOAxd9J2ZcqpVaYCS7MmtoG1Mtpvo9kZdAvBSm4POf3Fv1blmiEmAQYe3luOwOQ',
-    totalWins: 50,
-    averageScore: 165,
-    lastPlayed: 'Hoje',
-  },
-];
+const INITIAL_PLAYERS: Player[] = [];
 
 const PRESET_AVATARS: string[] = [
   'https://lh3.googleusercontent.com/aida-public/AB6AXuD6pa0w5xpTZvrK_3uvM1dVoxkye3hsEeSPbHjKscHfobDyn_1OPGmpPEpFuqLlB1cupPScEFS6Klv4UvmsJ1gksOkuPot9sgnCqIWZvpnONcvV3pR2z1QDu6c3jWxb4Wbu0Iet1DMhuXVvuNEpg2XHsQoW_vTEImQyOlhqfpOn-w70yfNBOmNe0iLweBemHQC4jfL6k2hz9VmumeZLYBnjOfEO6tv8s6yNrSOs_NOiDqtw7R7rjDehSw',
@@ -699,7 +626,6 @@ export default function Home() {
   const [prefQuickScore, setPrefQuickScore] = useState<boolean>(false);
   const [prefStrictRules, setPrefStrictRules] = useState<boolean>(false);
   const [isClearingHistory, setIsClearingHistory] = useState<boolean>(false);
-  const [isRestoringAvatars, setIsRestoringAvatars] = useState<boolean>(false);
   const [settingsMessage, setSettingsMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
 
@@ -902,73 +828,6 @@ export default function Home() {
     } finally {
       setIsClearingHistory(false);
       // clear message after 5 seconds
-      setTimeout(() => {
-        setSettingsMessage(null);
-      }, 5000);
-    }
-  };
-
-  const handleRestoreDefaultAvatars = async () => {
-    if (!confirm("Deseja restaurar os avatares originais em 3D dos 8 jogadores padrão no banco de dados?")) {
-      return;
-    }
-
-    setIsRestoringAvatars(true);
-    setSettingsMessage(null);
-
-    try {
-      let successCount = 0;
-      for (const initialPlayer of INITIAL_PLAYERS) {
-        try {
-          // Try to update the player in the database
-          const res = await fetch(`/api/players/${initialPlayer.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: initialPlayer.name,
-              style: initialPlayer.style,
-              avatar: initialPlayer.avatar,
-            }),
-          });
-
-          if (res.ok) {
-            successCount++;
-          } else if (res.status === 404) {
-            // Re-create the player if deleted
-            const createRes = await fetch('/api/players', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                ...initialPlayer,
-                isCustom: false,
-              }),
-            });
-            if (createRes.ok) {
-              successCount++;
-            }
-          }
-        } catch (err) {
-          console.error(`Error restoring player ${initialPlayer.id}:`, err);
-        }
-      }
-
-      // Refresh players from database
-      const refreshRes = await fetch('/api/players');
-      const dbPlayers = await refreshRes.json();
-      if (Array.isArray(dbPlayers) && dbPlayers.length > 0) {
-        setPlayers(dbPlayers);
-        localStorage.setItem('flip7_players', JSON.stringify(dbPlayers));
-      }
-
-      setSettingsMessage({ 
-        type: 'success', 
-        text: `Avatares 3D originais restaurados com sucesso para ${successCount} jogadores!` 
-      });
-    } catch (err) {
-      console.error("Error in restore flow:", err);
-      setSettingsMessage({ type: 'error', text: 'Erro ao restaurar avatares 3D dos jogadores.' });
-    } finally {
-      setIsRestoringAvatars(false);
       setTimeout(() => {
         setSettingsMessage(null);
       }, 5000);
@@ -1318,7 +1177,7 @@ export default function Home() {
     }
 
     const tablePlayers = selectedPlayerIds.map((id) => {
-      const p = players.find((item) => item.id === id) || INITIAL_PLAYERS[0];
+      const p = players.find((item) => item.id === id) || players[0] || { id: 'unknown', name: 'Jogador', style: 'Equilibrado', avatar: PRESET_AVATARS[0] };
       return {
         id: p.id,
         name: p.name,
@@ -3287,35 +3146,6 @@ export default function Home() {
                       <>
                         <Trash2 className="w-4 h-4" />
                         LIMPAR HISTÓRICO
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-background border border-outline-variant rounded-2xl">
-                  <div>
-                    <h4 className="font-display font-black text-sm text-on-surface uppercase">
-                      Restaurar Avatares Padrão (3D)
-                    </h4>
-                    <p className="text-[11px] text-on-surface-variant max-w-md mt-0.5">
-                      Garante que todos os 8 jogadores padrão (Sora, Leo, Maya, etc.) utilizem as fotos e ilustrações 3D originais no banco de dados.
-                    </p>
-                  </div>
-                  
-                  <button
-                    onClick={handleRestoreDefaultAvatars}
-                    disabled={isRestoringAvatars}
-                    className="md:self-center py-2.5 px-5 bg-primary hover:bg-primary/80 disabled:bg-surface-variant text-white font-mono text-xs font-black tracking-wider uppercase rounded-xl border-b-2 border-primary-fixed hover:border-transparent active:translate-y-0.5 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed shadow-md shadow-primary/10 shrink-0"
-                  >
-                    {isRestoringAvatars ? (
-                      <>
-                        <span className="w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin"></span>
-                        RESTAURANDO...
-                      </>
-                    ) : (
-                      <>
-                        <RotateCcw className="w-4 h-4" />
-                        RESTAURAR AVATARES
                       </>
                     )}
                   </button>
