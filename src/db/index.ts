@@ -3,9 +3,12 @@ import { Pool } from 'pg';
 import * as schema from './schema';
 
 export const createPool = () => {
-  if (process.env.DATABASE_URL) {
+  const databaseUrl = process.env.DATABASE_URL;
+  const isValidUrl = databaseUrl && (databaseUrl.startsWith('postgres://') || databaseUrl.startsWith('postgresql://'));
+
+  if (isValidUrl) {
     return new Pool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: databaseUrl,
       connectionTimeoutMillis: 15000,
     });
   }
