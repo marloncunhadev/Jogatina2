@@ -691,7 +691,13 @@ export default function Home() {
       const parsedPlayers = storedPlayers ? JSON.parse(storedPlayers) : INITIAL_PLAYERS;
       const parsedHistory = storedHistory ? JSON.parse(storedHistory) : INITIAL_MATCHES;
       const parsedActiveTable = storedActiveTable ? JSON.parse(storedActiveTable) : DEFAULT_ACTIVE_TABLE;
-      const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+      let parsedUser = storedUser ? JSON.parse(storedUser) : null;
+
+      // Automatically migrate stored "Game Master" session to "On Idéias Criativas"
+      if (parsedUser && parsedUser.name === 'Game Master') {
+        parsedUser.name = 'On Idéias Criativas';
+        localStorage.setItem('flip7_logged_in_user', JSON.stringify(parsedUser));
+      }
 
       // Initialize seed users if not existing
       const storedUsers = localStorage.getItem('flip7_users');
@@ -700,6 +706,24 @@ export default function Home() {
           'flip7_users',
           JSON.stringify([{ name: 'On Idéias Criativas', email: 'admin@flip7.com', password: 'senha123' }])
         );
+      } else {
+        // Also migrate existing user list in localStorage if "Game Master" is present
+        try {
+          const parsedUsers = JSON.parse(storedUsers);
+          let migrated = false;
+          const updatedUsers = parsedUsers.map((u: any) => {
+            if (u.name === 'Game Master') {
+              u.name = 'On Idéias Criativas';
+              migrated = true;
+            }
+            return u;
+          });
+          if (migrated) {
+            localStorage.setItem('flip7_users', JSON.stringify(updatedUsers));
+          }
+        } catch (e) {
+          console.error(e);
+        }
       }
 
       setTimeout(() => {
@@ -1293,7 +1317,7 @@ export default function Home() {
                 type="submit"
                 className="w-full py-3.5 bg-primary-container text-on-primary-container font-mono text-xs font-bold tracking-widest rounded-xl border-b-4 border-black active:translate-y-0.5 active:border-b-2 transition-all hover:brightness-110 cursor-pointer uppercase mt-6 font-black"
               >
-                ACESSAR ARENA
+                ACESSAR JOGATINA
               </button>
 
               {/* Quick Fill presets */}
@@ -1389,7 +1413,7 @@ export default function Home() {
             </div>
             <div>
               <h1 className="font-display font-black text-2xl text-primary-container tracking-tighter uppercase leading-none">
-                ARENA PLACAR
+                JOGATINA - PLACAR
               </h1>
               <p className="text-on-surface-variant text-xs font-display mt-1">
                 Selecione o jogo ativo para iniciar ou acompanhar as mesas
@@ -1450,7 +1474,7 @@ export default function Home() {
         {/* Footer */}
         <div className="w-full max-w-5xl mx-auto text-center mt-12 py-6 border-t border-surface-variant/20 relative z-10">
           <p className="text-on-surface-variant/60 font-mono text-[10px] uppercase tracking-widest">
-            ARENA MULTI-JOGOS PLACAR © {new Date().getFullYear()} • Administrada por {currentUser?.name}
+            JOGATINA MULTI-JOGOS PLACAR © {new Date().getFullYear()} • Administrada por {currentUser?.name}
           </p>
         </div>
       </div>
@@ -1516,7 +1540,7 @@ export default function Home() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="font-mono text-xs font-bold text-on-surface uppercase tracking-wider truncate">{currentUser?.name || 'Jogador'}</p>
-              <p className="text-[10px] text-on-surface-variant font-medium truncate">{currentUser?.email || 'Acesso Arena'}</p>
+              <p className="text-[10px] text-on-surface-variant font-medium truncate">{currentUser?.email || 'Acesso Jogatina'}</p>
             </div>
           </div>
         </div>
@@ -1760,7 +1784,7 @@ export default function Home() {
                       onClick={() => setActiveTab('live')}
                       className="bg-primary-container text-on-primary-container font-mono text-xs font-bold tracking-wider uppercase px-4 py-2.5 rounded-xl flex items-center gap-2 primary-glow-hover active:scale-95 transition-all cursor-pointer"
                     >
-                      <Play className="w-4 h-4 fill-current" /> Abrir Arena
+                      <Play className="w-4 h-4 fill-current" /> Abrir Jogatina
                     </button>
                   ) : (
                     <button 
