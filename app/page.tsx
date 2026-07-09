@@ -1356,7 +1356,7 @@ export default function Home() {
         activePlayer.history.push(activePlayer.score);
         activePlayer.score = 0;
 
-        checkAndAdvanceTurn(updated);
+        forceEndRoundFLIP7(updated);
         localStorage.setItem('flip7_active_table', JSON.stringify(updated));
         return updated;
       });
@@ -1501,8 +1501,8 @@ export default function Home() {
       activePlayer.history.push(activePlayer.score);
       activePlayer.score = 0;
 
-      // Check if target met after banking
-      checkAndAdvanceTurn(updated);
+      // Force end of round on FLIP 7
+      forceEndRoundFLIP7(updated);
 
       localStorage.setItem('flip7_active_table', JSON.stringify(updated));
       return updated;
@@ -1597,6 +1597,38 @@ export default function Home() {
       }
     } else {
       updated.activePlayerIndex = nextIndex;
+    }
+  };
+
+  const forceEndRoundFLIP7 = (updated: Table) => {
+    // Fill in 0 for any players who haven't banked/played yet in this round
+    updated.players.forEach((p) => {
+      if (p.history.length < updated.currentRound) {
+        p.history.push(0);
+      }
+      p.isBusted = false;
+      p.score = 0;
+      p.totalScore = p.history.reduce((a, b) => a + b, 0);
+    });
+
+    const nextRound = updated.currentRound + 1;
+
+    // At the end of a round, check if anyone has met the target score
+    const playersWhoReachedTarget = updated.players.filter((p) => p.totalScore >= updated.targetScore);
+
+    if (playersWhoReachedTarget.length > 0) {
+      // Find player with the highest overall score among everyone
+      const sortedPlayers = [...updated.players].sort((a, b) => b.totalScore - a.totalScore);
+      const winner = sortedPlayers[0];
+      endActiveGame(updated, winner);
+    } else if (nextRound > updated.maxRounds) {
+      // Find winner by maximum total score if max rounds exceeded
+      const sortedPlayers = [...updated.players].sort((a, b) => b.totalScore - a.totalScore);
+      const winner = sortedPlayers[0];
+      endActiveGame(updated, winner);
+    } else {
+      updated.currentRound = nextRound;
+      updated.activePlayerIndex = 0;
     }
   };
 
