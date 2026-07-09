@@ -1186,8 +1186,8 @@ export default function Home() {
     // Filter out selectedPlayerIds that do not exist in current players list
     const validSelectedPlayerIds = selectedPlayerIds.filter(id => players.some(p => p.id === id));
     
-    if (validSelectedPlayerIds.length < 2) {
-      alert('Selecione pelo menos 2 jogadores para iniciar o duelo!');
+    if (validSelectedPlayerIds.length < 1) {
+      alert('Selecione pelo menos 1 jogador para iniciar a partida!');
       return;
     }
 
