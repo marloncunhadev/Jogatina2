@@ -35,6 +35,10 @@ import {
 import { supabase } from '../lib/supabase';
 import AppLogo from '../components/AppLogo';
 
+const generateUniqueId = (prefix: string): string => {
+  return `${prefix}_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+};
+
 // Interfaces
 interface Player {
   id: string;
@@ -418,7 +422,7 @@ const GAMES: GameConfig[] = [
     description: 'Alcance a maior pontuação sem estourar tirando cartas consecutivas no limite.',
     colorClass: 'from-amber-500/10 to-orange-600/10 border-orange-500/30 hover:border-orange-500/80 text-orange-400',
     badge: 'F7',
-    defaultTarget: 100,
+    defaultTarget: 200,
     defaultMaxRounds: 7,
     imageUrl: 'https://picsum.photos/seed/flip7cards/200/200',
   },
@@ -600,6 +604,9 @@ export default function Home() {
   // Custom live score points input
   const [customPoints, setCustomPoints] = useState<string>('');
 
+  // FLIP 7 Active cards drawn in the current turn
+  const [drawnCards, setDrawnCards] = useState<string[]>([]);
+
   // Hydration safety flag
   const [isHydrated, setIsHydrated] = useState<boolean>(false);
 
@@ -631,7 +638,7 @@ export default function Home() {
 
   // New Game settings
   const [newTableName, setNewTableName] = useState<string>('');
-  const [newTargetScore, setNewTargetScore] = useState<number>(100);
+  const [newTargetScore, setNewTargetScore] = useState<number>(200);
   const [newMaxRounds, setNewMaxRounds] = useState<number>(7);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
 
@@ -682,6 +689,7 @@ export default function Home() {
       const storedPlayers = localStorage.getItem('flip7_players');
       const storedHistory = localStorage.getItem('flip7_history');
       const storedActiveTable = localStorage.getItem('flip7_active_table');
+      const storedDrawnCards = localStorage.getItem('flip7_drawn_cards');
       const storedUser = localStorage.getItem('flip7_logged_in_user');
       const storedGame = localStorage.getItem('flip7_selected_game');
       const storedSound = localStorage.getItem('flip7_pref_sound');
@@ -691,6 +699,7 @@ export default function Home() {
       const parsedPlayers = storedPlayers ? JSON.parse(storedPlayers) : INITIAL_PLAYERS;
       const parsedHistory = storedHistory ? JSON.parse(storedHistory) : INITIAL_MATCHES;
       const parsedActiveTable = storedActiveTable ? JSON.parse(storedActiveTable) : DEFAULT_ACTIVE_TABLE;
+      const parsedDrawnCards = storedDrawnCards ? JSON.parse(storedDrawnCards) : [];
       let parsedUser = storedUser ? JSON.parse(storedUser) : null;
 
       // Automatically migrate stored "Game Master" session to "On Idéias Criativas"
@@ -763,6 +772,7 @@ export default function Home() {
         setPlayers(parsedPlayers);
         setHistory(parsedHistory);
         setActiveTable(parsedActiveTable);
+        setDrawnCards(parsedDrawnCards);
         if (storedGame) {
           setSelectedGame(storedGame);
         }
@@ -1220,6 +1230,8 @@ export default function Home() {
 
     saveActiveTableToLocalStorage(newTable);
     setCurrentRoundLogs([]);
+    setDrawnCards([]);
+    localStorage.setItem('flip7_drawn_cards', JSON.stringify([]));
     setActiveTab('live');
   };
 
@@ -1228,6 +1240,184 @@ export default function Home() {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // FLIP 7 Scoring calculations
+  const calculateFlip7Score = (cards: string[]) => {
+    let score = 0;
+    let multiplierCount = 0;
+
+    for (const card of cards) {
+      if (card === 'x2') {
+        multiplierCount++;
+      } else if (card.startsWith('+')) {
+        // e.g. "+2", "+4", "+6", "+8", "+10"
+        const val = parseInt(card.substring(1), 10);
+        if (!isNaN(val)) {
+          score += val;
+        }
+      } else {
+        // e.g. "0" to "12"
+        const val = parseInt(card, 10);
+        if (!isNaN(val)) {
+          score += val;
+        }
+      }
+    }
+
+    // Multiply score
+    for (let i = 0; i < multiplierCount; i++) {
+      score *= 2;
+    }
+
+    // If they got FLIP7 (7 unique cards from 0 to 12)
+    const numberedCards = cards.filter(card => {
+      const val = parseInt(card, 10);
+      return !card.startsWith('+') && card !== 'x2' && !isNaN(val) && val >= 0 && val <= 12;
+    });
+    const uniqueNumberedCards = Array.from(new Set(numberedCards));
+
+    if (uniqueNumberedCards.length >= 7) {
+      score += 15; // 15 points FLIP 7 bonus
+    }
+
+    return score;
+  };
+
+  const handleDrawFlip7Card = (cardValue: string) => {
+    if (!activeTable) return;
+    const prevIndex = activeTable.activePlayerIndex;
+    const player = activeTable.players[prevIndex];
+    if (player.isBusted) return;
+
+    // Check duplicate
+    if (drawnCards.includes(cardValue)) {
+      // BUST!
+      const logMsg = {
+        playerName: player.name,
+        message: `ESTOUROU! Comprou carta duplicada: [${cardValue}]`,
+        points: 0,
+        isBusted: true,
+        isFlip7: false,
+      };
+      setCurrentRoundLogs((prev) => [logMsg, ...prev]);
+
+      setActiveTable((prevTable) => {
+        if (!prevTable) return null;
+        const updated = { ...prevTable };
+        const activePlayer = updated.players[prevIndex];
+
+        activePlayer.isBusted = true;
+        activePlayer.score = 0;
+        activePlayer.totalScore = activePlayer.history.reduce((a, b) => a + b, 0);
+
+        advanceLiveTurn(updated);
+        localStorage.setItem('flip7_active_table', JSON.stringify(updated));
+        return updated;
+      });
+
+      setDrawnCards([]);
+      localStorage.setItem('flip7_drawn_cards', JSON.stringify([]));
+      return;
+    }
+
+    // No duplicate, add the card!
+    const updatedCards = [...drawnCards, cardValue];
+    setDrawnCards(updatedCards);
+    localStorage.setItem('flip7_drawn_cards', JSON.stringify(updatedCards));
+
+    // Calculate score
+    const newScore = calculateFlip7Score(updatedCards);
+
+    // Check if FLIP 7 achieved (7 unique cards from 0 to 12)
+    const numberedCards = updatedCards.filter(card => {
+      const val = parseInt(card, 10);
+      return !card.startsWith('+') && card !== 'x2' && !isNaN(val) && val >= 0 && val <= 12;
+    });
+    const uniqueNumberedCards = Array.from(new Set(numberedCards));
+
+    if (uniqueNumberedCards.length >= 7) {
+      // FLIP 7 Achieved!
+      const logMsg = {
+        playerName: player.name,
+        message: `conseguiu um FLIP 7! 🎉 (+15 pts bônus!)`,
+        points: newScore,
+        isBusted: false,
+        isFlip7: true,
+      };
+      setCurrentRoundLogs((prev) => [logMsg, ...prev]);
+
+      setActiveTable((prevTable) => {
+        if (!prevTable) return null;
+        const updated = { ...prevTable };
+        const activePlayer = updated.players[prevIndex];
+
+        activePlayer.score = newScore;
+        activePlayer.totalScore = activePlayer.history.reduce((a, b) => a + b, 0) + activePlayer.score;
+
+        // Bank immediately
+        activePlayer.history.push(activePlayer.score);
+        activePlayer.score = 0;
+
+        checkAndAdvanceTurn(updated);
+        localStorage.setItem('flip7_active_table', JSON.stringify(updated));
+        return updated;
+      });
+
+      setDrawnCards([]);
+      localStorage.setItem('flip7_drawn_cards', JSON.stringify([]));
+    } else {
+      // Just update current score
+      setActiveTable((prevTable) => {
+        if (!prevTable) return null;
+        const updated = { ...prevTable };
+        const activePlayer = updated.players[prevIndex];
+
+        activePlayer.score = newScore;
+        activePlayer.totalScore = activePlayer.history.reduce((a, b) => a + b, 0) + activePlayer.score;
+
+        localStorage.setItem('flip7_active_table', JSON.stringify(updated));
+        return updated;
+      });
+    }
+  };
+
+  const handleUndoLastFlip7Card = () => {
+    if (drawnCards.length === 0) return;
+    const updatedCards = drawnCards.slice(0, -1);
+    setDrawnCards(updatedCards);
+    localStorage.setItem('flip7_drawn_cards', JSON.stringify(updatedCards));
+
+    const newScore = calculateFlip7Score(updatedCards);
+
+    setActiveTable((prevTable) => {
+      if (!prevTable) return null;
+      const updated = { ...prevTable };
+      const activePlayer = updated.players[updated.activePlayerIndex];
+
+      activePlayer.score = newScore;
+      activePlayer.totalScore = activePlayer.history.reduce((a, b) => a + b, 0) + activePlayer.score;
+
+      localStorage.setItem('flip7_active_table', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleClearFlip7Cards = () => {
+    setDrawnCards([]);
+    localStorage.setItem('flip7_drawn_cards', JSON.stringify([]));
+
+    setActiveTable((prevTable) => {
+      if (!prevTable) return null;
+      const updated = { ...prevTable };
+      const activePlayer = updated.players[updated.activePlayerIndex];
+
+      activePlayer.score = 0;
+      activePlayer.totalScore = activePlayer.history.reduce((a, b) => a + b, 0);
+
+      localStorage.setItem('flip7_active_table', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   // Active Live Game Scoring Actions
@@ -1281,6 +1471,9 @@ export default function Home() {
       localStorage.setItem('flip7_active_table', JSON.stringify(updated));
       return updated;
     });
+
+    setDrawnCards([]);
+    localStorage.setItem('flip7_drawn_cards', JSON.stringify([]));
   };
 
   const handleLiveFlip7 = () => {
@@ -1289,10 +1482,10 @@ export default function Home() {
     const player = activeTable.players[prevIndex];
 
     // FLIP7 scores: custom bonus score + banks turn immediately!
-    const bonus = 21; // FLIP7 bonus points
+    const bonus = 15; // FLIP7 bonus points
     const logMsg = {
       playerName: player.name,
-      message: 'FLIP7 Seq Bônus! (+21 pts)',
+      message: 'FLIP7 Seq Bônus! (+15 pts)',
       points: bonus,
       isBusted: false,
       isFlip7: true,
@@ -1317,6 +1510,9 @@ export default function Home() {
       localStorage.setItem('flip7_active_table', JSON.stringify(updated));
       return updated;
     });
+
+    setDrawnCards([]);
+    localStorage.setItem('flip7_drawn_cards', JSON.stringify([]));
   };
 
   const handleBankLivePoints = () => {
@@ -1349,20 +1545,31 @@ export default function Home() {
       localStorage.setItem('flip7_active_table', JSON.stringify(updated));
       return updated;
     });
+
+    setDrawnCards([]);
+    localStorage.setItem('flip7_drawn_cards', JSON.stringify([]));
   };
 
   const checkAndAdvanceTurn = (updated: Table) => {
-    // Check if player hit or exceeded the target score after banking
-    const lastBankedScore = updated.players[updated.activePlayerIndex].totalScore;
-    if (lastBankedScore >= updated.targetScore) {
-      endActiveGame(updated, updated.players[updated.activePlayerIndex]);
-    } else {
+    const isFlip7 = (updated.game || selectedGame || 'flip7') === 'flip7';
+    if (isFlip7) {
+      // In FLIP 7, the game ONLY ends at the end of the round when one or more players have reached 200+ points!
+      // This ensures that all players have an equal number of turns in the round.
       advanceLiveTurn(updated);
+    } else {
+      // Check if player hit or exceeded the target score after banking
+      const lastBankedScore = updated.players[updated.activePlayerIndex].totalScore;
+      if (lastBankedScore >= updated.targetScore) {
+        endActiveGame(updated, updated.players[updated.activePlayerIndex]);
+      } else {
+        advanceLiveTurn(updated);
+      }
     }
   };
 
   const advanceLiveTurn = (updated: Table) => {
     const nextIndex = updated.activePlayerIndex + 1;
+    const isFlip7 = (updated.game || selectedGame || 'flip7') === 'flip7';
 
     if (nextIndex >= updated.players.length) {
       // End of round! Increment round
@@ -1374,8 +1581,16 @@ export default function Home() {
         p.score = 0;
       });
 
-      if (nextRound > updated.maxRounds) {
-        // Find winner by maximum total score
+      // At the end of a round, check if anyone has met the target score
+      const playersWhoReachedTarget = updated.players.filter((p) => p.totalScore >= updated.targetScore);
+
+      if (playersWhoReachedTarget.length > 0) {
+        // Find player with the highest overall score among everyone
+        const sortedPlayers = [...updated.players].sort((a, b) => b.totalScore - a.totalScore);
+        const winner = sortedPlayers[0];
+        endActiveGame(updated, winner);
+      } else if (nextRound > updated.maxRounds) {
+        // Find winner by maximum total score if max rounds exceeded
         const sortedPlayers = [...updated.players].sort((a, b) => b.totalScore - a.totalScore);
         const winner = sortedPlayers[0];
         endActiveGame(updated, winner);
@@ -1393,7 +1608,7 @@ export default function Home() {
 
     // Register Match History
     const matchHistoryItem: MatchHistory = {
-      id: 'match_' + Date.now(),
+      id: generateUniqueId('match'),
       tableName: table.name,
       date: new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' }),
       winnerName: winnerPlayer.name,
@@ -1407,7 +1622,7 @@ export default function Home() {
 
     // Create database history records for ALL players in the table
     const dbHistoryRecords = table.players.map((p, idx) => ({
-      id: `hist_${Date.now()}_${idx}`,
+      id: generateUniqueId(`hist_${idx}`),
       matchId: matchHistoryItem.id,
       date: matchHistoryItem.date,
       tableName: table.name,
@@ -2817,172 +3032,325 @@ export default function Home() {
                     {/* Quick hit action triggers (active player only) */}
                     {isActive && !isWinnerResult && !p.isBusted && (
                       <div className="bg-surface-container px-5 py-4 border-t border-surface-variant flex flex-col gap-3 animate-fade-in">
-                        
-                        <div className="flex items-center justify-between">
-                          <p className="font-mono text-[9px] font-black text-on-surface-variant uppercase tracking-wider">
-                            {(() => {
-                              const activeGameId = activeTable.game || selectedGame || 'flip7';
-                              if (activeGameId === 'flip7') return 'Simular Cartas Adicionais (Push your luck!)';
-                              if (activeGameId === 'catan') return 'Lançar Recursos / Pontos de Vitória';
-                              if (activeGameId === 'general') return 'Lançar Combinação de Dados';
-                              return 'Lançar Pontos Adicionais';
-                            })()}
-                          </p>
-                          <div className="text-xs font-bold text-primary-container font-mono">
-                            Meta: {activeTable.targetScore} pts
-                          </div>
-                        </div>
+                        {(() => {
+                          const activeGameId = activeTable.game || selectedGame || 'flip7';
 
-                        <div className="flex flex-wrap gap-2 items-center">
-                          {(() => {
-                            const activeGameId = activeTable.game || selectedGame || 'flip7';
-                            const presets = activeGameId === 'catan' 
-                              ? [{ label: '+1', val: 1 }, { label: '+2', val: 2 }, { label: '+3', val: 3 }, { label: '+5', val: 5 }]
-                              : activeGameId === 'general'
-                              ? [{ label: '+10', val: 10 }, { label: '+25', val: 25 }, { label: '+30', val: 30 }, { label: '+40', val: 40 }, { label: '+50', val: 50 }]
-                              : (activeGameId === 'uno' || activeGameId === 'uno_flip' || activeGameId === 'uno_no_mercy')
-                              ? [{ label: '+5', val: 5 }, { label: '+10', val: 10 }, { label: '+20', val: 20 }, { label: '+50', val: 50 }, { label: '+100', val: 100 }]
-                              : [{ label: '+1', val: 1 }, { label: '+2', val: 2 }, { label: '+3', val: 3 }, { label: '+4', val: 4 }, { label: '+5', val: 5 }, { label: '+6', val: 6 }, { label: '+7', val: 7 }];
-                            
-                            return presets.map((preset) => (
-                              <button
-                                key={preset.val}
-                                onClick={() => handleAddLivePoints(preset.val)}
-                                className="bg-surface-bright text-on-surface hover:bg-surface-container-highest px-3.5 py-2 rounded-xl font-display font-black text-sm border-b-2 border-black active:translate-y-0.5 transition-all cursor-pointer"
-                              >
-                                {preset.label}
-                              </button>
-                            ));
-                          })()}
+                          if (activeGameId === 'flip7') {
+                            return (
+                              <div className="space-y-4">
+                                {/* Hand / Drawn cards visualization */}
+                                <div className="bg-surface-bright rounded-2xl p-4 border border-outline-variant">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="font-mono text-[9px] font-black text-on-surface-variant uppercase tracking-wider">
+                                      Mão Atual nesta Rodada
+                                    </span>
+                                    <span className="font-mono text-xs font-bold text-primary-container">
+                                      {drawnCards.length} {drawnCards.length === 1 ? 'carta' : 'cartas'}
+                                    </span>
+                                  </div>
+                                  {drawnCards.length === 0 ? (
+                                    <p className="text-xs text-on-surface-variant italic py-2 text-center">
+                                      Nenhuma carta comprada. Clique nas cartas abaixo para comprar!
+                                    </p>
+                                  ) : (
+                                    <div className="flex flex-wrap gap-2 py-1 justify-center sm:justify-start">
+                                      {drawnCards.map((card, i) => {
+                                        const isSpecial = card.startsWith('+');
+                                        const isMultiplier = card === 'x2';
+                                        return (
+                                          <div
+                                            key={i}
+                                            className={`w-12 h-16 rounded-lg shadow border flex flex-col justify-between p-2 font-display font-black text-sm relative select-none animate-scale-in ${
+                                              isMultiplier
+                                                ? 'bg-emerald-950/40 border-emerald-500 text-emerald-400'
+                                                : isSpecial
+                                                ? 'bg-amber-950/40 border-amber-500 text-amber-400'
+                                                : 'bg-primary-container/10 border-primary-container text-primary-container'
+                                            }`}
+                                          >
+                                            <div className="text-[10px] text-left leading-none">
+                                              {isMultiplier ? '✖' : isSpecial ? '➕' : '🃏'}
+                                            </div>
+                                            <div className="text-center text-base leading-none py-1">
+                                              {card}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
 
-                          <div className="w-px bg-outline-variant h-8 mx-1"></div>
+                                  {drawnCards.length > 0 && (
+                                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-outline-variant justify-end">
+                                      <button
+                                        type="button"
+                                        onClick={handleUndoLastFlip7Card}
+                                        className="text-[10px] font-mono font-bold text-on-surface-variant hover:text-on-surface flex items-center gap-1 bg-surface-container-highest px-2 py-1 rounded-lg transition-all cursor-pointer"
+                                        title="Desfazer última carta comprada"
+                                      >
+                                        <RotateCcw className="w-3 h-3" /> Desfazer Última
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={handleClearFlip7Cards}
+                                        className="text-[10px] font-mono font-bold text-error hover:brightness-110 flex items-center gap-1 bg-error-container/10 px-2 py-1 rounded-lg transition-all cursor-pointer"
+                                        title="Limpar toda a mão"
+                                      >
+                                        <X className="w-3 h-3" /> Limpar Mão
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
 
-                          {/* Custom Score input inside active actions */}
-                          <div className="flex items-center gap-1.5 bg-surface-bright border border-surface-variant rounded-xl p-1 ml-1">
-                            <input
-                              type="number"
-                              value={customPoints}
-                              onChange={(e) => setCustomPoints(e.target.value)}
-                              placeholder="Outro"
-                              className="w-16 bg-transparent text-xs font-mono font-bold text-center border-none p-0 focus:outline-none placeholder:text-surface-variant text-on-surface"
-                            />
-                            <button
-                              onClick={handleAddCustomPoints}
-                              className="bg-primary-container text-on-primary-container px-2 py-1 rounded-lg text-xs font-bold font-mono border border-black active:scale-95 cursor-pointer"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
+                                {/* Deck Draw Board */}
+                                <div className="space-y-3">
+                                  {/* Numbers 0 to 12 */}
+                                  <div>
+                                    <p className="font-mono text-[9px] font-black text-on-surface-variant uppercase tracking-wider mb-1.5">
+                                      Cartas de Números (0 a 12)
+                                    </p>
+                                    <div className="grid grid-cols-5 sm:grid-cols-7 md:grid-cols-13 gap-1.5">
+                                      {['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'].map((num) => {
+                                        const isDrawn = drawnCards.includes(num);
+                                        return (
+                                          <button
+                                            key={num}
+                                            type="button"
+                                            onClick={() => handleDrawFlip7Card(num)}
+                                            className={`h-10 rounded-xl font-display font-black text-sm flex items-center justify-center transition-all cursor-pointer ${
+                                              isDrawn
+                                                ? 'bg-yellow-400 text-yellow-950 border-2 border-yellow-500 font-bold hover:brightness-110 shadow-sm relative'
+                                                : 'bg-surface-bright text-on-surface hover:bg-surface-container-highest border-b-2 border-black'
+                                            }`}
+                                            title={isDrawn ? 'Selecionado' : `Comprar carta ${num}`}
+                                          >
+                                            {num}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
 
-                        {/* Game-specific Extra Quick Actions */}
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          {(() => {
-                            const activeGameId = activeTable.game || selectedGame || 'flip7';
-                            if (activeGameId === 'flip7') {
-                              return (
-                                <>
-                                  <button
-                                    onClick={handleLiveFlip7}
-                                    className="bg-tertiary-container text-on-tertiary-container hover:brightness-110 px-4 py-2 rounded-xl font-display font-black text-xs border-b-2 border-on-tertiary-container active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
-                                    title="Flip 7 cards with no duplicates!"
-                                  >
-                                    <Zap className="w-3.5 h-3.5 fill-current text-on-tertiary-container" /> FLIP7
-                                  </button>
+                                  {/* Special Cards */}
+                                  <div>
+                                    <p className="font-mono text-[9px] font-black text-on-surface-variant uppercase tracking-wider mb-1.5">
+                                      Cartas Especiais (Múltiplos e Acréscimos)
+                                    </p>
+                                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                                      {['+2', '+4', '+6', '+8', '+10', 'x2'].map((spec) => {
+                                        const isDrawn = drawnCards.includes(spec);
+                                        return (
+                                          <button
+                                            key={spec}
+                                            type="button"
+                                            onClick={() => handleDrawFlip7Card(spec)}
+                                            className={`py-2 rounded-xl font-display font-black text-xs flex items-center justify-center transition-all cursor-pointer ${
+                                              isDrawn
+                                                ? 'bg-yellow-400 text-yellow-950 border-2 border-yellow-500 font-bold hover:brightness-110 shadow-sm'
+                                                : spec === 'x2'
+                                                ? 'bg-emerald-950/20 text-emerald-400 hover:bg-emerald-900 border-b-2 border-emerald-950 border'
+                                                : 'bg-amber-950/20 text-amber-400 hover:bg-amber-900 border-b-2 border-amber-950 border'
+                                            }`}
+                                            title={isDrawn ? 'Selecionado' : `Comprar carta especial ${spec}`}
+                                          >
+                                            {spec}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Standard bank & manual actions row */}
+                                <div className="flex flex-col sm:flex-row gap-3 pt-3 border-t border-outline-variant items-center justify-between">
+                                  <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                                    <button
+                                      type="button"
+                                      onClick={handleBankLivePoints}
+                                      disabled={drawnCards.length === 0}
+                                      className="bg-primary-container text-on-primary-container hover:brightness-110 px-4 py-2.5 rounded-xl font-display font-black text-xs border-b-2 border-black active:scale-95 transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:pointer-events-none flex-1 sm:flex-none justify-center"
+                                    >
+                                      <Check className="w-3.5 h-3.5" /> PARAR & SALVAR
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={handleLiveBust}
+                                      className="bg-error-container text-on-error-container hover:brightness-110 px-4 py-2.5 rounded-xl font-display font-black text-xs border-b-2 border-on-error active:scale-95 transition-all flex items-center gap-1 cursor-pointer flex-1 sm:flex-none justify-center"
+                                      title="Forçar Estouro manual"
+                                    >
+                                      <HeartCrack className="w-3.5 h-3.5" /> ESTOURAR
+                                    </button>
+                                  </div>
+
+                                  {/* Custom adjustment input */}
+                                  <div className="flex items-center gap-1.5 bg-surface-bright border border-surface-variant rounded-xl p-1 w-full sm:w-auto justify-between sm:justify-start">
+                                    <span className="text-[10px] font-mono font-bold text-on-surface-variant uppercase px-2">Ajuste Manual:</span>
+                                    <div className="flex items-center gap-1">
+                                      <input
+                                        type="number"
+                                        value={customPoints}
+                                        onChange={(e) => setCustomPoints(e.target.value)}
+                                        placeholder="0"
+                                        className="w-12 bg-transparent text-xs font-mono font-bold text-center border-none p-0 focus:outline-none placeholder:text-surface-variant text-on-surface"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={handleAddCustomPoints}
+                                        className="bg-surface-container-highest text-on-surface px-2.5 py-1 rounded-lg text-xs font-bold font-mono border border-black active:scale-95 cursor-pointer"
+                                        title="Adicionar pontos de ajuste"
+                                      >
+                                        +
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          // Non-FLIP7 Games Scoring Actions
+                          return (
+                            <>
+                              <div className="flex items-center justify-between">
+                                <p className="font-mono text-[9px] font-black text-on-surface-variant uppercase tracking-wider">
+                                  {activeGameId === 'catan' ? 'Lançar Recursos / Pontos de Vitória' : activeGameId === 'general' ? 'Lançar Combinação de Dados' : 'Lançar Pontos Adicionais'}
+                                </p>
+                                <div className="text-xs font-bold text-primary-container font-mono">
+                                  Meta: {activeTable.targetScore} pts
+                                </div>
+                              </div>
+
+                              <div className="flex flex-wrap gap-2 items-center">
+                                {(() => {
+                                  const presets = activeGameId === 'catan' 
+                                    ? [{ label: '+1', val: 1 }, { label: '+2', val: 2 }, { label: '+3', val: 3 }, { label: '+5', val: 5 }]
+                                    : activeGameId === 'general'
+                                    ? [{ label: '+10', val: 10 }, { label: '+25', val: 25 }, { label: '+30', val: 30 }, { label: '+40', val: 40 }, { label: '+50', val: 50 }]
+                                    : [{ label: '+5', val: 5 }, { label: '+10', val: 10 }, { label: '+20', val: 20 }, { label: '+50', val: 50 }, { label: '+100', val: 100 }];
                                   
+                                  return presets.map((preset) => (
+                                    <button
+                                      key={preset.val}
+                                      type="button"
+                                      onClick={() => handleAddLivePoints(preset.val)}
+                                      className="bg-surface-bright text-on-surface hover:bg-surface-container-highest px-3.5 py-2 rounded-xl font-display font-black text-sm border-b-2 border-black active:translate-y-0.5 transition-all cursor-pointer"
+                                    >
+                                      {preset.label}
+                                    </button>
+                                  ));
+                                })()}
+
+                                <div className="w-px bg-outline-variant h-8 mx-1"></div>
+
+                                {/* Custom Score input inside active actions */}
+                                <div className="flex items-center gap-1.5 bg-surface-bright border border-surface-variant rounded-xl p-1 ml-1">
+                                  <input
+                                    type="number"
+                                    value={customPoints}
+                                    onChange={(e) => setCustomPoints(e.target.value)}
+                                    placeholder="Outro"
+                                    className="w-16 bg-transparent text-xs font-mono font-bold text-center border-none p-0 focus:outline-none placeholder:text-surface-variant text-on-surface"
+                                  />
                                   <button
-                                    onClick={handleLiveBust}
-                                    className="bg-error-container text-on-error-container hover:brightness-110 px-4 py-2 rounded-xl font-display font-black text-xs border-b-2 border-on-error active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
-                                    title="Got a duplicate symbol"
+                                    type="button"
+                                    onClick={handleAddCustomPoints}
+                                    className="bg-primary-container text-on-primary-container px-2 py-1 rounded-lg text-xs font-bold font-mono border border-black active:scale-95 cursor-pointer"
                                   >
-                                    <HeartCrack className="w-3.5 h-3.5 text-on-error-container" /> ESTOURAR
+                                    +
                                   </button>
-                                </>
-                              );
-                            }
+                                </div>
+                              </div>
 
-                            if (activeGameId === 'uno' || activeGameId === 'uno_flip' || activeGameId === 'uno_no_mercy') {
-                              return (
+                              {/* Game-specific Extra Quick Actions */}
+                              <div className="flex flex-wrap gap-2 pt-1">
+                                {(() => {
+                                  if (activeGameId === 'uno' || activeGameId === 'uno_flip' || activeGameId === 'uno_no_mercy') {
+                                    return (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const logMsg = {
+                                            playerName: p.name,
+                                            message: 'gritou UNO! 🎴',
+                                            points: 0,
+                                            isBusted: false,
+                                            isFlip7: false,
+                                          };
+                                          setCurrentRoundLogs((prev) => [logMsg, ...prev]);
+                                        }}
+                                        className="bg-rose-600 text-white hover:brightness-110 px-4 py-2 rounded-xl font-display font-black text-xs border-b-2 border-red-950 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                                      >
+                                        <span>🎴 GRITAR UNO!</span>
+                                      </button>
+                                    );
+                                  }
+
+                                  if (activeGameId === 'general') {
+                                    return (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          handleAddLivePoints(50);
+                                          const logMsg = {
+                                            playerName: p.name,
+                                            message: 'tirou GENERAL de primeira! 🎲',
+                                            points: 50,
+                                            isBusted: false,
+                                            isFlip7: false,
+                                          };
+                                          setCurrentRoundLogs((prev) => [logMsg, ...prev]);
+                                        }}
+                                        className="bg-emerald-600 text-white hover:brightness-110 px-4 py-2 rounded-xl font-display font-black text-xs border-b-2 border-emerald-950 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                                      >
+                                        <span>🎲 GENERAL! (+50)</span>
+                                      </button>
+                                    );
+                                  }
+
+                                  if (activeGameId === 'catan') {
+                                    return (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          handleAddLivePoints(2);
+                                          const logMsg = {
+                                            playerName: p.name,
+                                            message: 'conquistou a Maior Estrada / Exército! 🗺️',
+                                            points: 2,
+                                            isBusted: false,
+                                            isFlip7: false,
+                                          };
+                                          setCurrentRoundLogs((prev) => [logMsg, ...prev]);
+                                        }}
+                                        className="bg-amber-600 text-white hover:brightness-110 px-4 py-2 rounded-xl font-display font-black text-xs border-b-2 border-amber-950 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                                      >
+                                        <span>🗺️ MAIOR ESTRADA (+2)</span>
+                                      </button>
+                                    );
+                                  }
+
+                                  return null;
+                                })()}
+                              </div>
+
+                              {/* Confirmation Button to Bank points */}
+                              <div className="flex justify-end gap-2 pt-2 border-t border-surface-variant/30">
                                 <button
-                                  onClick={() => {
-                                    const logMsg = {
-                                      playerName: p.name,
-                                      message: 'gritou UNO! 🎴',
-                                      points: 0,
-                                      isBusted: false,
-                                      isFlip7: false,
-                                    };
-                                    setCurrentRoundLogs((prev) => [logMsg, ...prev]);
-                                  }}
-                                  className="bg-rose-600 text-white hover:brightness-110 px-4 py-2 rounded-xl font-display font-black text-xs border-b-2 border-red-950 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                                  type="button"
+                                  onClick={handleBankLivePoints}
+                                  disabled={p.score === 0}
+                                  className={`px-5 py-2.5 rounded-xl font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all ${
+                                    p.score === 0
+                                      ? 'bg-surface-variant text-on-surface-variant opacity-50 cursor-not-allowed'
+                                      : 'bg-primary-container text-on-primary-container hover:brightness-110 cursor-pointer shadow active:scale-95'
+                                  }`}
                                 >
-                                  <span>🎴 GRITAR UNO!</span>
+                                  <CheckCircle2 className="w-4 h-4" /> Parar & Salvar Pontos
                                 </button>
-                              );
-                            }
-
-                            if (activeGameId === 'general') {
-                              return (
-                                <button
-                                  onClick={() => {
-                                    handleAddLivePoints(50);
-                                    const logMsg = {
-                                      playerName: p.name,
-                                      message: 'tirou GENERAL de primeira! 🎲',
-                                      points: 50,
-                                      isBusted: false,
-                                      isFlip7: false,
-                                    };
-                                    setCurrentRoundLogs((prev) => [logMsg, ...prev]);
-                                  }}
-                                  className="bg-emerald-600 text-white hover:brightness-110 px-4 py-2 rounded-xl font-display font-black text-xs border-b-2 border-emerald-950 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
-                                >
-                                  <span>🎲 GENERAL! (+50)</span>
-                                </button>
-                              );
-                            }
-
-                            if (activeGameId === 'catan') {
-                              return (
-                                <button
-                                  onClick={() => {
-                                    handleAddLivePoints(2);
-                                    const logMsg = {
-                                      playerName: p.name,
-                                      message: 'conquistou a Maior Estrada / Exército! 🗺️',
-                                      points: 2,
-                                      isBusted: false,
-                                      isFlip7: false,
-                                    };
-                                    setCurrentRoundLogs((prev) => [logMsg, ...prev]);
-                                  }}
-                                  className="bg-amber-600 text-white hover:brightness-110 px-4 py-2 rounded-xl font-display font-black text-xs border-b-2 border-amber-950 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
-                                >
-                                  <span>🗺️ MAIOR ESTRADA (+2)</span>
-                                </button>
-                              );
-                            }
-
-                            return null;
-                          })()}
-                        </div>
-
-                        {/* Confirmation Button to Bank points */}
-                        <div className="flex justify-end gap-2 pt-2 border-t border-surface-variant/30">
-                          <button
-                            type="button"
-                            onClick={handleBankLivePoints}
-                            disabled={p.score === 0}
-                            className={`px-5 py-2.5 rounded-xl font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all ${
-                              p.score === 0
-                                ? 'bg-surface-variant text-on-surface-variant opacity-50 cursor-not-allowed'
-                                : 'bg-primary-container text-on-primary-container hover:brightness-110 cursor-pointer shadow active:scale-95'
-                            }`}
-                          >
-                            <CheckCircle2 className="w-4 h-4" /> Parar & Salvar Pontos
-                          </button>
-                        </div>
-
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     )}
 
