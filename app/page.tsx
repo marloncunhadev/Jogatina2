@@ -694,6 +694,14 @@ export default function Home() {
   const [dbHistory, setDbHistory] = useState<DBMatchHistory[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(false);
 
+  // App settings and preferences
+  const [prefSound, setPrefSound] = useState<boolean>(true);
+  const [prefQuickScore, setPrefQuickScore] = useState<boolean>(false);
+  const [prefStrictRules, setPrefStrictRules] = useState<boolean>(false);
+  const [isClearingHistory, setIsClearingHistory] = useState<boolean>(false);
+  const [settingsMessage, setSettingsMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+
   // New Game settings
   const [newTableName, setNewTableName] = useState<string>('');
   const [newTargetScore, setNewTargetScore] = useState<number>(100);
@@ -742,6 +750,9 @@ export default function Home() {
       const storedActiveTable = localStorage.getItem('flip7_active_table');
       const storedUser = localStorage.getItem('flip7_logged_in_user');
       const storedGame = localStorage.getItem('flip7_selected_game');
+      const storedSound = localStorage.getItem('flip7_pref_sound');
+      const storedQuickScore = localStorage.getItem('flip7_pref_quick_score');
+      const storedStrictRules = localStorage.getItem('flip7_pref_strict_rules');
 
       const parsedPlayers = storedPlayers ? JSON.parse(storedPlayers) : INITIAL_PLAYERS;
       const parsedHistory = storedHistory ? JSON.parse(storedHistory) : INITIAL_MATCHES;
@@ -821,6 +832,15 @@ export default function Home() {
         if (storedGame) {
           setSelectedGame(storedGame);
         }
+        if (storedSound !== null) {
+          setPrefSound(storedSound === 'true');
+        }
+        if (storedQuickScore !== null) {
+          setPrefQuickScore(storedQuickScore === 'true');
+        }
+        if (storedStrictRules !== null) {
+          setPrefStrictRules(storedStrictRules === 'true');
+        }
         if (!supabase && parsedUser) {
           setCurrentUser(parsedUser);
           setIsLoggedIn(true);
@@ -852,6 +872,41 @@ export default function Home() {
         setIsLoadingHistory(false);
       });
   };
+
+  const handleClearDbHistory = async () => {
+    if (!confirm("Aviso: Tem certeza de que deseja limpar todo o histórico de jogadas do banco de dados? Esta ação é irreversível.")) {
+      return;
+    }
+    
+    setIsClearingHistory(true);
+    setSettingsMessage(null);
+    
+    try {
+      const response = await fetch('/api/history', {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setDbHistory([]);
+        setHistory([]);
+        localStorage.setItem('flip7_history', JSON.stringify([]));
+        setSettingsMessage({ type: 'success', text: 'Histórico de partidas do banco de dados limpo com sucesso!' });
+      } else {
+        setSettingsMessage({ type: 'error', text: data.error || 'Erro ao limpar histórico do banco de dados.' });
+      }
+    } catch (err) {
+      console.error("Error clearing history:", err);
+      setSettingsMessage({ type: 'error', text: 'Erro de rede ou conexão ao limpar o histórico.' });
+    } finally {
+      setIsClearingHistory(false);
+      // clear message after 5 seconds
+      setTimeout(() => {
+        setSettingsMessage(null);
+      }, 5000);
+    }
+  };
+
 
   // Dynamically fetch up-to-date players and history from database when changing tabs
   useEffect(() => {
@@ -1777,6 +1832,13 @@ export default function Home() {
             <HistoryIcon className="w-5 h-5" />
           </button>
           <button 
+            onClick={() => setActiveTab('settings')}
+            className={`flex items-center justify-center text-primary hover:text-primary-fixed hover:bg-surface-container-high transition-colors p-2 rounded-full cursor-pointer ${activeTab === 'settings' ? 'bg-surface-container-high text-primary-container' : ''}`}
+            title="Configurações"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+          <button 
             onClick={handleLogout}
             className="flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error-container/20 transition-colors p-2 rounded-full cursor-pointer"
             title="Sair do Placar"
@@ -1850,6 +1912,18 @@ export default function Home() {
           >
             <PlusCircle className="w-5 h-5 text-tertiary-container" />
             <span className="font-mono text-xs tracking-wider uppercase">Nova Mesa</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-all cursor-pointer ${
+              activeTab === 'settings'
+                ? 'bg-secondary-container text-on-secondary-container font-bold border-b-2 border-on-secondary-container'
+                : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
+            }`}
+          >
+            <Settings className="w-5 h-5 text-tertiary-container" />
+            <span className="font-mono text-xs tracking-wider uppercase">Configurações</span>
           </button>
 
           {activeTable && activeTable.status === 'active' && (
@@ -1930,7 +2004,18 @@ export default function Home() {
           <span className="font-mono text-[10px] tracking-wider uppercase mt-1">Novo</span>
         </button>
 
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`flex flex-col items-center justify-center px-3 py-1 rounded-xl transition-all ${
+            activeTab === 'settings' ? 'bg-primary-container text-on-primary-container border-b-2 border-on-primary-container' : 'text-on-surface-variant'
+          }`}
+        >
+          <Settings className="w-5 h-5" />
+          <span className="font-mono text-[10px] tracking-wider uppercase mt-1">Ajustes</span>
+        </button>
+
         {activeTable && activeTable.status === 'active' && (
+
           <button
             onClick={() => setActiveTab('live')}
             className={`flex flex-col items-center justify-center px-3 py-1 rounded-xl transition-all animate-pulse ${
@@ -3067,6 +3152,178 @@ export default function Home() {
                   Excluir Mesa
                 </button>
               </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* --- VIEW: SETTINGS --- */}
+        {activeTab === 'settings' && (
+          <div className="max-w-3xl mx-auto space-y-6">
+            
+            <section className="mb-4">
+              <h2 className="font-display font-black text-2xl md:text-3xl text-primary flex items-center gap-2">
+                <Settings className="w-7 h-7 text-primary" /> CONFIGURAÇÕES DO PLACAR
+              </h2>
+              <p className="text-sm text-on-surface-variant mt-1">
+                Personalize o comportamento da jogatina, gerencie preferências locais e controle os dados salvos.
+              </p>
+            </section>
+
+            {settingsMessage && (
+              <div className={`p-4 rounded-xl font-mono text-xs font-bold border-l-4 flex items-center gap-2 animate-pop ${
+                settingsMessage.type === 'success' 
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500' 
+                  : 'bg-error/10 text-error border-error'
+              }`}>
+                {settingsMessage.type === 'success' ? <Check className="w-4 h-4 text-emerald-400" /> : <X className="w-4 h-4 text-error" />}
+                {settingsMessage.text}
+              </div>
+            )}
+
+            {/* DATABASE & PERSISTENCE CARD */}
+            <div className="bg-surface-container border border-surface-variant/40 rounded-3xl p-6 relative overflow-hidden">
+              <div className="absolute right-4 top-4 opacity-5">
+                <Trash2 className="w-16 h-16 text-primary" />
+              </div>
+              
+              <h3 className="font-display font-black text-lg text-primary uppercase mb-1">
+                Banco de Dados & Memória
+              </h3>
+              <p className="text-xs text-on-surface-variant mb-6">
+                Gerencie os registros salvos localmente e no banco de dados em nuvem Cloud SQL.
+              </p>
+
+              <div className="space-y-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-background border border-outline-variant rounded-2xl">
+                  <div>
+                    <h4 className="font-display font-black text-sm text-on-surface uppercase">
+                      Limpar Histórico das Jogadas
+                    </h4>
+                    <p className="text-[11px] text-on-surface-variant max-w-md mt-0.5">
+                      Apaga todas as partidas finalizadas registradas no banco de dados e na memória do navegador. Esta operação é irreversível.
+                    </p>
+                  </div>
+                  
+                  <button
+                    onClick={handleClearDbHistory}
+                    disabled={isClearingHistory}
+                    className="md:self-center py-2.5 px-5 bg-error hover:bg-error/80 disabled:bg-surface-variant text-white font-mono text-xs font-black tracking-wider uppercase rounded-xl border-b-2 border-red-950 hover:border-transparent active:translate-y-0.5 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed shadow-md shadow-error/10 shrink-0"
+                  >
+                    {isClearingHistory ? (
+                      <>
+                        <span className="w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin"></span>
+                        LIMPANDO...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4" />
+                        LIMPAR HISTÓRICO
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* APP PREFERENCES CARD */}
+            <div className="bg-surface-container border border-surface-variant/40 rounded-3xl p-6">
+              <h3 className="font-display font-black text-lg text-primary uppercase mb-1">
+                Preferências Locais
+              </h3>
+              <p className="text-xs text-on-surface-variant mb-6">
+                Ajuste os mecanismos internos do painel para se adequar ao ritmo do seu grupo.
+              </p>
+
+              <div className="divide-y divide-surface-variant/30">
+                {/* PREF 1: SOUND */}
+                <div className="py-4 flex items-center justify-between gap-4 first:pt-0">
+                  <div>
+                    <h4 className="font-display font-black text-sm text-on-surface uppercase">
+                      Efeitos Sonoros do Mestre
+                    </h4>
+                    <p className="text-[11px] text-on-surface-variant mt-0.5">
+                      Tocar alarmes visuais e efeitos ao estourar cartas ou registrar pontuação.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const newValue = !prefSound;
+                      setPrefSound(newValue);
+                      localStorage.setItem('flip7_pref_sound', String(newValue));
+                    }}
+                    className={`w-12 h-6 rounded-full p-0.5 transition-all cursor-pointer ${
+                      prefSound ? 'bg-primary' : 'bg-surface-container-highest border border-outline-variant'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-full bg-white transition-all shadow ${
+                      prefSound ? 'translate-x-6' : 'translate-x-0'
+                    }`} />
+                  </button>
+                </div>
+
+                {/* PREF 2: QUICK SCORE */}
+                <div className="py-4 flex items-center justify-between gap-4">
+                  <div>
+                    <h4 className="font-display font-black text-sm text-on-surface uppercase">
+                      Pontuação Rápida por Toque
+                    </h4>
+                    <p className="text-[11px] text-on-surface-variant mt-0.5">
+                      Incrementar pontuação do jogador selecionado diretamente ao clicar nas cartas numéricas.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const newValue = !prefQuickScore;
+                      setPrefQuickScore(newValue);
+                      localStorage.setItem('flip7_pref_quick_score', String(newValue));
+                    }}
+                    className={`w-12 h-6 rounded-full p-0.5 transition-all cursor-pointer ${
+                      prefQuickScore ? 'bg-primary' : 'bg-surface-container-highest border border-outline-variant'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-full bg-white transition-all shadow ${
+                      prefQuickScore ? 'translate-x-6' : 'translate-x-0'
+                    }`} />
+                  </button>
+                </div>
+
+                {/* PREF 3: STRICT RULES */}
+                <div className="py-4 flex items-center justify-between gap-4 last:pb-0">
+                  <div>
+                    <h4 className="font-display font-black text-sm text-on-surface uppercase">
+                      Modo Competitivo Estrito
+                    </h4>
+                    <p className="text-[11px] text-on-surface-variant mt-0.5">
+                      Exigir confirmações adicionais para desfazer rodadas e limitar o número de penalidades por partida.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const newValue = !prefStrictRules;
+                      setPrefStrictRules(newValue);
+                      localStorage.setItem('flip7_pref_strict_rules', String(newValue));
+                    }}
+                    className={`w-12 h-6 rounded-full p-0.5 transition-all cursor-pointer ${
+                      prefStrictRules ? 'bg-primary' : 'bg-surface-container-highest border border-outline-variant'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-full bg-white transition-all shadow ${
+                      prefStrictRules ? 'translate-x-6' : 'translate-x-0'
+                    }`} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* ABOUT APPLICATION */}
+            <div className="bg-surface-container/40 border border-surface-variant/30 rounded-3xl p-6 text-center">
+              <p className="font-mono text-[10px] uppercase tracking-wider text-on-surface-variant/70">
+                Sistema Placar Multi-Jogos • Versão 3.5.0
+              </p>
+              <p className="text-xs text-on-surface-variant mt-2">
+                Conectado com sucesso à base de dados relacional Cloud SQL e sincronizado em tempo real.
+              </p>
             </div>
 
           </div>

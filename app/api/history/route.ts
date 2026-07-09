@@ -64,3 +64,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to save match history to database" }, { status: 500 });
   }
 }
+
+export async function DELETE() {
+  try {
+    await db.delete(matchHistory);
+    return NextResponse.json({ success: true, message: "Match history cleared successfully" });
+  } catch (error) {
+    console.error("Failed to clear match history:", error);
+    return NextResponse.json({ error: "Failed to clear match history from database" }, { status: 500 });
+  }
+}
+
