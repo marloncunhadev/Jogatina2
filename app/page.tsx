@@ -2830,23 +2830,6 @@ export default function Home() {
 
                 <div>
                   <label className="block font-mono text-[10px] font-bold text-on-surface-variant mb-2 uppercase tracking-wider">
-                    ESTILO DE JOGO
-                  </label>
-                  <select
-                    value={addPlayerStyle}
-                    onChange={(e) => setAddPlayerStyle(e.target.value as any)}
-                    className="w-full bg-surface-container-highest border-2 border-outline-variant rounded-xl px-4 py-3 text-on-surface focus:border-tertiary focus:ring-0 focus:outline-none transition-all appearance-none font-semibold cursor-pointer"
-                  >
-                    <option value="Agressivo">Agressivo (Push-your-luck!)</option>
-                    <option value="Agressiva">Agressiva (Push-your-luck!)</option>
-                    <option value="Conservador">Conservador (Bank safe)</option>
-                    <option value="Equilibrado">Equilibrado (Matemático)</option>
-                    <option value="Coringa">Coringa (Imprevisível)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-mono text-[10px] font-bold text-on-surface-variant mb-2 uppercase tracking-wider">
                     SELECIONE O AVATAR
                   </label>
                   <div className="grid grid-cols-4 gap-3 mb-3">
@@ -2880,33 +2863,6 @@ export default function Home() {
                     placeholder="Ou cole a URL de uma imagem personalizada"
                     className="w-full bg-surface-container-highest border-2 border-outline-variant rounded-xl px-4 py-2 text-xs text-on-surface focus:border-tertiary focus:ring-0 focus:outline-none transition-all font-mono"
                   />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block font-mono text-[10px] font-bold text-on-surface-variant mb-2 uppercase tracking-wider">
-                      VITÓRIAS INICIAIS
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={addPlayerWins}
-                      onChange={(e) => setAddPlayerWins(parseInt(e.target.value) || 0)}
-                      className="w-full bg-surface-container-highest border-2 border-outline-variant rounded-xl px-4 py-3 text-on-surface focus:border-tertiary focus:ring-0 focus:outline-none transition-all font-semibold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-mono text-[10px] font-bold text-on-surface-variant mb-2 uppercase tracking-wider">
-                      MÉDIA DE PONTOS
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={addPlayerAverage}
-                      onChange={(e) => setAddPlayerAverage(parseInt(e.target.value) || 0)}
-                      className="w-full bg-surface-container-highest border-2 border-outline-variant rounded-xl px-4 py-3 text-on-surface focus:border-tertiary focus:ring-0 focus:outline-none transition-all font-semibold"
-                    />
-                  </div>
                 </div>
 
                 <div className="pt-4">
@@ -2968,23 +2924,6 @@ export default function Home() {
 
                 <div>
                   <label className="block font-mono text-[10px] font-bold text-on-surface-variant mb-2 uppercase tracking-wider">
-                    ESTILO DE JOGO
-                  </label>
-                  <select
-                    value={editPlayerStyle}
-                    onChange={(e) => setEditPlayerStyle(e.target.value as any)}
-                    className="w-full bg-surface-container-highest border-2 border-outline-variant rounded-xl px-4 py-3 text-on-surface focus:border-tertiary focus:ring-0 focus:outline-none transition-all appearance-none font-semibold cursor-pointer"
-                  >
-                    <option value="Agressivo">Agressivo (Push-your-luck!)</option>
-                    <option value="Agressiva">Agressiva (Push-your-luck!)</option>
-                    <option value="Conservador">Conservador (Bank safe)</option>
-                    <option value="Equilibrado">Equilibrado (Matemático)</option>
-                    <option value="Coringa">Coringa (Imprevisível)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-mono text-[10px] font-bold text-on-surface-variant mb-2 uppercase tracking-wider">
                     SELECIONE O AVATAR
                   </label>
                   <div className="grid grid-cols-4 gap-3 mb-3">
@@ -3018,33 +2957,6 @@ export default function Home() {
                     placeholder="Ou cole a URL de uma imagem personalizada"
                     className="w-full bg-surface-container-highest border-2 border-outline-variant rounded-xl px-4 py-2 text-xs text-on-surface focus:border-tertiary focus:ring-0 focus:outline-none transition-all font-mono"
                   />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block font-mono text-[10px] font-bold text-on-surface-variant mb-2 uppercase tracking-wider">
-                      VITÓRIAS DA LIGA
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={editPlayerWins}
-                      onChange={(e) => setEditPlayerWins(parseInt(e.target.value) || 0)}
-                      className="w-full bg-surface-container-highest border-2 border-outline-variant rounded-xl px-4 py-3 text-on-surface focus:border-tertiary focus:ring-0 focus:outline-none transition-all font-semibold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-mono text-[10px] font-bold text-on-surface-variant mb-2 uppercase tracking-wider">
-                      MÉDIA DE PONTOS
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={editPlayerAverage}
-                      onChange={(e) => setEditPlayerAverage(parseInt(e.target.value) || 0)}
-                      className="w-full bg-surface-container-highest border-2 border-outline-variant rounded-xl px-4 py-3 text-on-surface focus:border-tertiary focus:ring-0 focus:outline-none transition-all font-semibold"
-                    />
-                  </div>
                 </div>
 
                 <div className="pt-4">
