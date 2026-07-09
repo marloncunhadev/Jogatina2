@@ -668,6 +668,13 @@ export default function Home() {
           if (Array.isArray(dbPlayers) && dbPlayers.length > 0) {
             setPlayers(dbPlayers);
             localStorage.setItem('flip7_players', JSON.stringify(dbPlayers));
+            setSelectedPlayerIds((prev) => {
+              const validPrev = prev.filter(id => dbPlayers.some(p => p.id === id));
+              if (validPrev.length === 0) {
+                return dbPlayers.slice(0, 4).map((p: any) => p.id);
+              }
+              return validPrev;
+            });
           }
         })
         .catch((err) => console.error("Error loading players from database:", err));
@@ -772,8 +779,12 @@ export default function Home() {
           setCurrentUser(parsedUser);
           setIsLoggedIn(true);
         }
-        // Pre-select 4 players by default for New Game
-        setSelectedPlayerIds(['sora', 'leo', 'maya', 'alex']);
+        // Pre-select up to 4 players by default for New Game
+        if (Array.isArray(parsedPlayers) && parsedPlayers.length > 0) {
+          setSelectedPlayerIds(parsedPlayers.slice(0, 4).map((p: any) => p.id));
+        } else {
+          setSelectedPlayerIds([]);
+        }
         setIsHydrated(true);
       }, 0);
 
@@ -1171,13 +1182,17 @@ export default function Home() {
   // Initialize and start a custom game table
   const handleStartGame = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedPlayerIds.length < 2) {
+    
+    // Filter out selectedPlayerIds that do not exist in current players list
+    const validSelectedPlayerIds = selectedPlayerIds.filter(id => players.some(p => p.id === id));
+    
+    if (validSelectedPlayerIds.length < 2) {
       alert('Selecione pelo menos 2 jogadores para iniciar o duelo!');
       return;
     }
 
-    const tablePlayers = selectedPlayerIds.map((id) => {
-      const p = players.find((item) => item.id === id) || players[0] || { id: 'unknown', name: 'Jogador', style: 'Equilibrado', avatar: PRESET_AVATARS[0] };
+    const tablePlayers = validSelectedPlayerIds.map((id) => {
+      const p = players.find((item) => item.id === id)!;
       return {
         id: p.id,
         name: p.name,
