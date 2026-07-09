@@ -1,0 +1,6 @@
+{
+  "name": "FLIP7 Scoreboard",
+  "description": "Marcador de pontos oficial e dinâmico para o jogo de cartas FLIP7, com controle de mesas, rodadas e histórico.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
