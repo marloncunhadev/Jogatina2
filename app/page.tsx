@@ -853,23 +853,20 @@ export default function Home() {
       });
   };
 
-  // Dynamically fetch up-to-date players or history from database when accessing tabs
+  // Dynamically fetch up-to-date players and history from database when changing tabs
   useEffect(() => {
     if (isHydrated) {
-      if (activeTab === 'players' || activeTab === 'new_game') {
-        fetch('/api/players')
-          .then((res) => res.json())
-          .then((dbPlayers) => {
-            if (Array.isArray(dbPlayers) && dbPlayers.length > 0) {
-              setPlayers(dbPlayers);
-              localStorage.setItem('flip7_players', JSON.stringify(dbPlayers));
-            }
-          })
-          .catch((err) => console.error("Error refreshing players from database:", err));
-      }
-      if (activeTab === 'history' || activeTab === 'dashboard') {
-        fetchDbHistory();
-      }
+      fetch('/api/players')
+        .then((res) => res.json())
+        .then((dbPlayers) => {
+          if (Array.isArray(dbPlayers) && dbPlayers.length > 0) {
+            setPlayers(dbPlayers);
+            localStorage.setItem('flip7_players', JSON.stringify(dbPlayers));
+          }
+        })
+        .catch((err) => console.error("Error refreshing players from database:", err));
+
+      fetchDbHistory();
     }
   }, [activeTab, isHydrated]);
 
@@ -1973,6 +1970,66 @@ export default function Home() {
               </p>
             </section>
 
+            {/* HIGH-LEVEL DATABASE STATS CARDS */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-surface-container border border-surface-variant/40 rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden">
+                <div className="absolute right-2 top-2 opacity-5">
+                  <Gamepad2 className="w-12 h-12 text-primary" />
+                </div>
+                <p className="font-mono text-[9px] font-bold text-on-surface-variant uppercase tracking-wider">Partidas Salvas</p>
+                <p className="font-display font-black text-2xl text-primary mt-2">
+                  {new Set(dbHistory.map(h => h.matchId)).size}
+                </p>
+                <span className="text-[10px] text-on-surface-variant mt-1">Registradas no banco</span>
+              </div>
+
+              <div className="bg-surface-container border border-surface-variant/40 rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden">
+                <div className="absolute right-2 top-2 opacity-5">
+                  <Trophy className="w-12 h-12 text-primary" />
+                </div>
+                <p className="font-display font-black text-lg text-primary-container mt-2 truncate max-w-full">
+                  {(() => {
+                    const winCounts: Record<string, number> = {};
+                    dbHistory.filter(h => h.isWinner).forEach(h => {
+                      winCounts[h.playerName] = (winCounts[h.playerName] || 0) + 1;
+                    });
+                    let topPlayerName = "-";
+                    let topPlayerWins = 0;
+                    Object.entries(winCounts).forEach(([name, wins]) => {
+                      if (wins > topPlayerWins) {
+                        topPlayerWins = wins;
+                        topPlayerName = name;
+                      }
+                    });
+                    return topPlayerName !== "-" ? `${topPlayerName} (${topPlayerWins} v)` : "Nenhum";
+                  })()}
+                </p>
+                <p className="font-mono text-[9px] font-bold text-on-surface-variant uppercase tracking-wider mt-1">Líder de Vitórias</p>
+              </div>
+
+              <div className="bg-surface-container border border-surface-variant/40 rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden">
+                <div className="absolute right-2 top-2 opacity-5">
+                  <Sparkles className="w-12 h-12 text-primary" />
+                </div>
+                <p className="font-mono text-[9px] font-bold text-on-surface-variant uppercase tracking-wider">Recorde de Pontos</p>
+                <p className="font-display font-black text-2xl text-tertiary mt-2">
+                  {dbHistory.length > 0 ? Math.max(...dbHistory.map(h => h.score)) : 0} pts
+                </p>
+                <span className="text-[10px] text-on-surface-variant mt-1">Pontuação máxima</span>
+              </div>
+
+              <div className="bg-surface-container border border-surface-variant/40 rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden">
+                <div className="absolute right-2 top-2 opacity-5">
+                  <BarChart2 className="w-12 h-12 text-primary" />
+                </div>
+                <p className="font-mono text-[9px] font-bold text-on-surface-variant uppercase tracking-wider">Média Geral</p>
+                <p className="font-display font-black text-2xl text-on-surface mt-2">
+                  {dbHistory.length > 0 ? Math.round(dbHistory.reduce((sum, h) => sum + h.score, 0) / dbHistory.length) : 0} pts
+                </p>
+                <span className="text-[10px] text-on-surface-variant mt-1">Média de pontuação</span>
+              </div>
+            </div>
+
             {/* BENTO GRID LAYOUT */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               
@@ -2092,29 +2149,47 @@ export default function Home() {
                     HISTÓRICO RECENTE
                   </h3>
                   <div className="space-y-4 max-h-[220px] overflow-y-auto custom-scrollbar">
-                    {history.filter((h) => h.game === selectedGame || (!h.game && selectedGame === 'flip7')).length === 0 ? (
-                      <div className="text-center py-8">
-                        <p className="text-xs text-on-surface-variant font-mono">Nenhuma partida finalizada de {GAMES.find((g) => g.id === selectedGame)?.name} ainda.</p>
-                      </div>
+                    {dbHistory.filter((h) => h.isWinner && (h.game === selectedGame || (!h.game && selectedGame === 'flip7'))).length === 0 ? (
+                      history.filter((h) => h.game === selectedGame || (!h.game && selectedGame === 'flip7')).length === 0 ? (
+                        <div className="text-center py-8">
+                          <p className="text-xs text-on-surface-variant font-mono">Nenhuma partida finalizada de {GAMES.find((g) => g.id === selectedGame)?.name} ainda.</p>
+                        </div>
+                      ) : (
+                        history.filter((h) => h.game === selectedGame || (!h.game && selectedGame === 'flip7')).slice(0, 3).map((h) => (
+                          <div key={h.id} className="flex items-center gap-3 border-b border-surface-variant pb-3 last:border-b-0 last:pb-0">
+                            <div className="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-primary-container">
+                              {h.type === 'Epic' ? (
+                                <Trophy className="w-5 h-5 text-primary-container" />
+                              ) : h.type === 'FLIP7' ? (
+                                <Zap className="w-5 h-5 text-tertiary-fixed-dim" />
+                              ) : (
+                                <CheckCircle2 className="w-5 h-5 text-secondary-fixed-dim" />
+                              )}
+                            </div>
+                            <div className="flex-grow">
+                              <p className="text-sm font-bold text-on-surface">Vitória {h.winnerName}</p>
+                              <p className="text-[11px] text-on-surface-variant font-medium">{h.tableName} • {h.date}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-mono text-xs font-bold text-primary-container">{h.winnerScore} pts</p>
+                              <p className="text-[9px] text-on-surface-variant uppercase font-bold">{h.type}</p>
+                            </div>
+                          </div>
+                        ))
+                      )
                     ) : (
-                      history.filter((h) => h.game === selectedGame || (!h.game && selectedGame === 'flip7')).slice(0, 3).map((h) => (
+                      dbHistory.filter((h) => h.isWinner && (h.game === selectedGame || (!h.game && selectedGame === 'flip7'))).slice(0, 3).map((h) => (
                         <div key={h.id} className="flex items-center gap-3 border-b border-surface-variant pb-3 last:border-b-0 last:pb-0">
                           <div className="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-primary-container">
-                            {h.type === 'Epic' ? (
-                              <Trophy className="w-5 h-5 text-primary-container" />
-                            ) : h.type === 'FLIP7' ? (
-                              <Zap className="w-5 h-5 text-tertiary-fixed-dim" />
-                            ) : (
-                              <CheckCircle2 className="w-5 h-5 text-secondary-fixed-dim" />
-                            )}
+                            <Trophy className="w-5 h-5 text-primary" />
                           </div>
                           <div className="flex-grow">
-                            <p className="text-sm font-bold text-on-surface">Vitória {h.winnerName}</p>
+                            <p className="text-sm font-bold text-on-surface">Vitória {h.playerName}</p>
                             <p className="text-[11px] text-on-surface-variant font-medium">{h.tableName} • {h.date}</p>
                           </div>
                           <div className="text-right">
-                            <p className="font-mono text-xs font-bold text-primary-container">{h.winnerScore} pts</p>
-                            <p className="text-[9px] text-on-surface-variant uppercase font-bold">{h.type}</p>
+                            <p className="font-mono text-xs font-bold text-primary-container">{h.score} pts</p>
+                            <p className="text-[9px] text-on-surface-variant uppercase font-bold">{h.game?.toUpperCase() || 'FLIP7'}</p>
                           </div>
                         </div>
                       ))
