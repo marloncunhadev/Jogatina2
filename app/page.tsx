@@ -698,7 +698,7 @@ export default function Home() {
       if (!storedUsers) {
         localStorage.setItem(
           'flip7_users',
-          JSON.stringify([{ name: 'Game Master', email: 'admin@flip7.com', password: 'senha123' }])
+          JSON.stringify([{ name: 'On Idéias Criativas', email: 'admin@flip7.com', password: 'senha123' }])
         );
       }
 
@@ -805,7 +805,7 @@ export default function Home() {
     }
 
     const storedUsersStr = localStorage.getItem('flip7_users');
-    const usersList = storedUsersStr ? JSON.parse(storedUsersStr) : [{ name: 'Game Master', email: 'admin@flip7.com', password: 'senha123' }];
+    const usersList = storedUsersStr ? JSON.parse(storedUsersStr) : [{ name: 'On Idéias Criativas', email: 'admin@flip7.com', password: 'senha123' }];
 
     const matchedUser = usersList.find(
       (u: any) => u.email.toLowerCase() === loginEmail.trim().toLowerCase() && u.password === loginPassword.trim()
@@ -832,7 +832,7 @@ export default function Home() {
     }
 
     const storedUsersStr = localStorage.getItem('flip7_users');
-    const usersList = storedUsersStr ? JSON.parse(storedUsersStr) : [{ name: 'Game Master', email: 'admin@flip7.com', password: 'senha123' }];
+    const usersList = storedUsersStr ? JSON.parse(storedUsersStr) : [{ name: 'On Idéias Criativas', email: 'admin@flip7.com', password: 'senha123' }];
 
     const emailExists = usersList.some((u: any) => u.email.toLowerCase() === registerEmail.trim().toLowerCase());
     if (emailExists) {
