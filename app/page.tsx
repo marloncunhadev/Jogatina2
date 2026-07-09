@@ -1290,34 +1290,25 @@ export default function Home() {
     const player = activeTable.players[prevIndex];
     if (player.isBusted) return;
 
-    // Check duplicate
+    // Check duplicate (acts as deselect/toggle in scoring companion)
     if (drawnCards.includes(cardValue)) {
-      // BUST!
-      const logMsg = {
-        playerName: player.name,
-        message: `ESTOUROU! Comprou carta duplicada: [${cardValue}]`,
-        points: 0,
-        isBusted: true,
-        isFlip7: false,
-      };
-      setCurrentRoundLogs((prev) => [logMsg, ...prev]);
+      const updatedCards = drawnCards.filter((c) => c !== cardValue);
+      setDrawnCards(updatedCards);
+      localStorage.setItem('flip7_drawn_cards', JSON.stringify(updatedCards));
+
+      const newScore = calculateFlip7Score(updatedCards);
 
       setActiveTable((prevTable) => {
         if (!prevTable) return null;
         const updated = { ...prevTable };
         const activePlayer = updated.players[prevIndex];
 
-        activePlayer.isBusted = true;
-        activePlayer.score = 0;
-        activePlayer.totalScore = activePlayer.history.reduce((a, b) => a + b, 0);
+        activePlayer.score = newScore;
+        activePlayer.totalScore = activePlayer.history.reduce((a, b) => a + b, 0) + activePlayer.score;
 
-        advanceLiveTurn(updated);
         localStorage.setItem('flip7_active_table', JSON.stringify(updated));
         return updated;
       });
-
-      setDrawnCards([]);
-      localStorage.setItem('flip7_drawn_cards', JSON.stringify([]));
       return;
     }
 
