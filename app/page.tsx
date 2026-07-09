@@ -668,6 +668,12 @@ export default function Home() {
   // Load from local storage and API
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Clear active session on start so login screen is always shown first
+      localStorage.removeItem('flip7_logged_in_user');
+      if (supabase) {
+        supabase.auth.signOut().catch(() => {});
+      }
+
       // Fetch players from database API
       fetch('/api/players')
         .then((res) => res.json())
@@ -690,7 +696,7 @@ export default function Home() {
       const storedHistory = localStorage.getItem('flip7_history');
       const storedActiveTable = localStorage.getItem('flip7_active_table');
       const storedDrawnCards = localStorage.getItem('flip7_drawn_cards');
-      const storedUser = localStorage.getItem('flip7_logged_in_user');
+      const storedUser = null; // Always force login screen on fresh access
       const storedGame = localStorage.getItem('flip7_selected_game');
       const storedSound = localStorage.getItem('flip7_pref_sound');
       const storedQuickScore = localStorage.getItem('flip7_pref_quick_score');
