@@ -3,6 +3,8 @@ import { db } from "../../../src/db/index";
 import { players } from "../../../src/db/schema";
 import { desc, eq } from "drizzle-orm";
 
+export const dynamic = "force-dynamic";
+
 const INITIAL_PLAYERS = [
   {
     id: 'sora',

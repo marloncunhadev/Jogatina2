@@ -80,6 +80,20 @@ interface MatchHistory {
   game?: string;
 }
 
+interface DBMatchHistory {
+  id: string;
+  matchId: string;
+  date: string;
+  tableName: string;
+  playerName: string;
+  playerId: string | null;
+  score: number;
+  isWinner: boolean;
+  game: string;
+  createdAt: string;
+}
+
+
 interface SimulatedTable {
   id: string;
   name: string;
@@ -677,6 +691,8 @@ export default function Home() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [history, setHistory] = useState<MatchHistory[]>([]);
   const [activeTable, setActiveTable] = useState<Table | null>(null);
+  const [dbHistory, setDbHistory] = useState<DBMatchHistory[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(false);
 
   // New Game settings
   const [newTableName, setNewTableName] = useState<string>('');
@@ -820,20 +836,43 @@ export default function Home() {
     }
   }, []);
 
-  // Dynamically fetch up-to-date players from database when accessing player list or game registration
+  const fetchDbHistory = () => {
+    setTimeout(() => {
+      setIsLoadingHistory(true);
+    }, 0);
+    fetch('/api/history')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setDbHistory(data);
+        }
+      })
+      .catch((err) => console.error("Error fetching db history:", err))
+      .finally(() => {
+        setIsLoadingHistory(false);
+      });
+  };
+
+  // Dynamically fetch up-to-date players or history from database when accessing tabs
   useEffect(() => {
-    if (isHydrated && (activeTab === 'players' || activeTab === 'new_game')) {
-      fetch('/api/players')
-        .then((res) => res.json())
-        .then((dbPlayers) => {
-          if (Array.isArray(dbPlayers) && dbPlayers.length > 0) {
-            setPlayers(dbPlayers);
-            localStorage.setItem('flip7_players', JSON.stringify(dbPlayers));
-          }
-        })
-        .catch((err) => console.error("Error refreshing players from database:", err));
+    if (isHydrated) {
+      if (activeTab === 'players' || activeTab === 'new_game') {
+        fetch('/api/players')
+          .then((res) => res.json())
+          .then((dbPlayers) => {
+            if (Array.isArray(dbPlayers) && dbPlayers.length > 0) {
+              setPlayers(dbPlayers);
+              localStorage.setItem('flip7_players', JSON.stringify(dbPlayers));
+            }
+          })
+          .catch((err) => console.error("Error refreshing players from database:", err));
+      }
+      if (activeTab === 'history' || activeTab === 'dashboard') {
+        fetchDbHistory();
+      }
     }
   }, [activeTab, isHydrated]);
+
 
   // Save changes to local storage helper
   const savePlayersToLocalStorage = (updatedPlayers: Player[]) => {
@@ -1372,6 +1411,31 @@ export default function Home() {
 
     saveHistoryToLocalStorage([matchHistoryItem, ...history]);
 
+    // Create database history records for ALL players in the table
+    const dbHistoryRecords = table.players.map((p, idx) => ({
+      id: `hist_${Date.now()}_${idx}`,
+      matchId: matchHistoryItem.id,
+      date: matchHistoryItem.date,
+      tableName: table.name,
+      playerName: p.name,
+      playerId: p.id,
+      score: p.totalScore,
+      isWinner: p.id === winnerPlayer.id,
+      game: selectedGame || 'flip7'
+    }));
+
+    // Post to API
+    fetch('/api/history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dbHistoryRecords),
+    })
+      .then((res) => res.json())
+      .then(() => {
+        fetchDbHistory();
+      })
+      .catch((err) => console.error("Error saving match history to database:", err));
+
     // Update Winner Player Win Counts & Averages
     const updatedPlayers = players.map((p) => {
       if (p.name.toLowerCase() === winnerPlayer.name.toLowerCase() || p.id === winnerPlayer.id) {
@@ -1709,6 +1773,13 @@ export default function Home() {
             <Users className="w-5 h-5" />
           </button>
           <button 
+            onClick={() => setActiveTab('history')}
+            className={`flex items-center justify-center text-primary hover:text-primary-fixed hover:bg-surface-container-high transition-colors p-2 rounded-full cursor-pointer ${activeTab === 'history' ? 'bg-surface-container-high text-primary-container' : ''}`}
+            title="Histórico"
+          >
+            <HistoryIcon className="w-5 h-5" />
+          </button>
+          <button 
             onClick={handleLogout}
             className="flex items-center justify-center text-on-surface-variant hover:text-error hover:bg-error-container/20 transition-colors p-2 rounded-full cursor-pointer"
             title="Sair do Placar"
@@ -1755,6 +1826,18 @@ export default function Home() {
           >
             <Users className="w-5 h-5 text-tertiary-container" />
             <span className="font-mono text-xs tracking-wider uppercase">Jogadores</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-all cursor-pointer ${
+              activeTab === 'history'
+                ? 'bg-secondary-container text-on-secondary-container font-bold border-b-2 border-on-secondary-container'
+                : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
+            }`}
+          >
+            <HistoryIcon className="w-5 h-5 text-tertiary-container" />
+            <span className="font-mono text-xs tracking-wider uppercase">Histórico</span>
           </button>
 
           <button
@@ -1825,6 +1908,16 @@ export default function Home() {
         >
           <Users className="w-5 h-5" />
           <span className="font-mono text-[10px] tracking-wider uppercase mt-1">Jogadores</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('history')}
+          className={`flex flex-col items-center justify-center px-3 py-1 rounded-xl transition-all ${
+            activeTab === 'history' ? 'bg-primary-container text-on-primary-container border-b-2 border-on-primary-container' : 'text-on-surface-variant'
+          }`}
+        >
+          <HistoryIcon className="w-5 h-5" />
+          <span className="font-mono text-[10px] tracking-wider uppercase mt-1">Histórico</span>
         </button>
 
         <button
@@ -2403,6 +2496,120 @@ export default function Home() {
 
             </form>
 
+          </div>
+        )}
+
+        {/* --- VIEW: HISTÓRICO --- */}
+        {activeTab === 'history' && (
+          <div className="max-w-6xl mx-auto space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="font-display font-black text-2xl md:text-3xl text-on-surface">
+                  Histórico de Partidas
+                </h2>
+                <p className="text-sm text-on-surface-variant mt-1">
+                  Acompanhe em tempo real todas as partidas salvas no banco de dados.
+                </p>
+              </div>
+              <button
+                onClick={fetchDbHistory}
+                className="bg-primary-container text-on-primary-container px-4 py-2.5 rounded-xl font-mono text-xs font-bold tracking-wider uppercase brutalist-border flex items-center gap-2 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+              >
+                <RotateCcw className="w-4 h-4" /> Atualizar
+              </button>
+            </div>
+
+            <div className="bg-surface-container border border-surface-variant rounded-2xl overflow-hidden shadow-xl">
+              {isLoadingHistory ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-3">
+                  <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+                  <p className="font-mono text-xs text-on-surface-variant uppercase tracking-wider animate-pulse">Carregando dados do banco...</p>
+                </div>
+              ) : dbHistory.length === 0 ? (
+                <div className="text-center py-16 px-4">
+                  <div className="w-16 h-16 bg-surface-container-high rounded-full flex items-center justify-center mx-auto mb-4 text-on-surface-variant/40">
+                    <HistoryIcon className="w-8 h-8" />
+                  </div>
+                  <h3 className="font-display font-bold text-lg text-on-surface">Nenhuma partida registrada</h3>
+                  <p className="text-xs text-on-surface-variant mt-1 max-w-sm mx-auto">
+                    Partidas concluídas e finalizadas no modo de pontuação ao vivo serão salvas aqui automaticamente.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-surface-container-high border-b border-surface-variant">
+                        <th className="px-6 py-4 font-mono text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Data</th>
+                        <th className="px-6 py-4 font-mono text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Mesa / Torneio</th>
+                        <th className="px-6 py-4 font-mono text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Jogador</th>
+                        <th className="px-6 py-4 font-mono text-[10px] font-bold text-on-surface-variant uppercase tracking-wider text-right">Pontuação</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-surface-variant/30">
+                      {dbHistory.map((item) => {
+                        // Find matching player in local players state to get avatar if available
+                        const matchingPlayer = players.find(p => p.id === item.playerId || p.name.toLowerCase() === item.playerName.toLowerCase());
+                        const avatarUrl = matchingPlayer?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${item.playerName}`;
+                        
+                        return (
+                          <tr key={item.id} className="hover:bg-surface-container-high/40 transition-colors">
+                            {/* DATA */}
+                            <td className="px-6 py-4">
+                              <span className="font-mono text-xs text-on-surface-variant font-medium">
+                                {item.date}
+                              </span>
+                            </td>
+                            {/* MESA / TORNEIO */}
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-[10px] font-bold text-tertiary-fixed-dim px-2 py-0.5 bg-on-tertiary rounded uppercase">
+                                  {item.game || 'FLIP7'}
+                                </span>
+                                <span className="font-display font-bold text-sm text-on-surface">
+                                  {item.tableName}
+                                </span>
+                              </div>
+                            </td>
+                            {/* JOGADOR */}
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full border border-primary-container/20 overflow-hidden relative bg-surface-container-high">
+                                  <Image
+                                    src={avatarUrl}
+                                    alt={item.playerName}
+                                    fill
+                                    sizes="32px"
+                                    referrerPolicy="no-referrer"
+                                    className="object-cover"
+                                  />
+                                </div>
+                                <div>
+                                  <span className="font-bold text-on-surface text-sm flex items-center gap-1.5">
+                                    {item.playerName}
+                                    {item.isWinner && (
+                                      <span className="text-[9px] font-black font-mono text-primary-fixed bg-on-primary px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                        <Trophy className="w-2.5 h-2.5 fill-current" /> VENCEDOR
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+                            {/* PONTUAÇÃO */}
+                            <td className="px-6 py-4 text-right">
+                              <span className={`font-mono text-sm font-black ${item.isWinner ? 'text-primary-container text-base' : 'text-on-surface-variant'}`}>
+                                {item.score} pts
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
