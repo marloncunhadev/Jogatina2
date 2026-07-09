@@ -699,6 +699,7 @@ export default function Home() {
   const [prefQuickScore, setPrefQuickScore] = useState<boolean>(false);
   const [prefStrictRules, setPrefStrictRules] = useState<boolean>(false);
   const [isClearingHistory, setIsClearingHistory] = useState<boolean>(false);
+  const [isRestoringAvatars, setIsRestoringAvatars] = useState<boolean>(false);
   const [settingsMessage, setSettingsMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
 
@@ -901,6 +902,73 @@ export default function Home() {
     } finally {
       setIsClearingHistory(false);
       // clear message after 5 seconds
+      setTimeout(() => {
+        setSettingsMessage(null);
+      }, 5000);
+    }
+  };
+
+  const handleRestoreDefaultAvatars = async () => {
+    if (!confirm("Deseja restaurar os avatares originais em 3D dos 8 jogadores padrão no banco de dados?")) {
+      return;
+    }
+
+    setIsRestoringAvatars(true);
+    setSettingsMessage(null);
+
+    try {
+      let successCount = 0;
+      for (const initialPlayer of INITIAL_PLAYERS) {
+        try {
+          // Try to update the player in the database
+          const res = await fetch(`/api/players/${initialPlayer.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: initialPlayer.name,
+              style: initialPlayer.style,
+              avatar: initialPlayer.avatar,
+            }),
+          });
+
+          if (res.ok) {
+            successCount++;
+          } else if (res.status === 404) {
+            // Re-create the player if deleted
+            const createRes = await fetch('/api/players', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...initialPlayer,
+                isCustom: false,
+              }),
+            });
+            if (createRes.ok) {
+              successCount++;
+            }
+          }
+        } catch (err) {
+          console.error(`Error restoring player ${initialPlayer.id}:`, err);
+        }
+      }
+
+      // Refresh players from database
+      const refreshRes = await fetch('/api/players');
+      const dbPlayers = await refreshRes.json();
+      if (Array.isArray(dbPlayers) && dbPlayers.length > 0) {
+        setPlayers(dbPlayers);
+        localStorage.setItem('flip7_players', JSON.stringify(dbPlayers));
+      }
+
+      setSettingsMessage({ 
+        type: 'success', 
+        text: `Avatares 3D originais restaurados com sucesso para ${successCount} jogadores!` 
+      });
+    } catch (err) {
+      console.error("Error in restore flow:", err);
+      setSettingsMessage({ type: 'error', text: 'Erro ao restaurar avatares 3D dos jogadores.' });
+    } finally {
+      setIsRestoringAvatars(false);
       setTimeout(() => {
         setSettingsMessage(null);
       }, 5000);
@@ -3219,6 +3287,35 @@ export default function Home() {
                       <>
                         <Trash2 className="w-4 h-4" />
                         LIMPAR HISTÓRICO
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-background border border-outline-variant rounded-2xl">
+                  <div>
+                    <h4 className="font-display font-black text-sm text-on-surface uppercase">
+                      Restaurar Avatares Padrão (3D)
+                    </h4>
+                    <p className="text-[11px] text-on-surface-variant max-w-md mt-0.5">
+                      Garante que todos os 8 jogadores padrão (Sora, Leo, Maya, etc.) utilizem as fotos e ilustrações 3D originais no banco de dados.
+                    </p>
+                  </div>
+                  
+                  <button
+                    onClick={handleRestoreDefaultAvatars}
+                    disabled={isRestoringAvatars}
+                    className="md:self-center py-2.5 px-5 bg-primary hover:bg-primary/80 disabled:bg-surface-variant text-white font-mono text-xs font-black tracking-wider uppercase rounded-xl border-b-2 border-primary-fixed hover:border-transparent active:translate-y-0.5 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed shadow-md shadow-primary/10 shrink-0"
+                  >
+                    {isRestoringAvatars ? (
+                      <>
+                        <span className="w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin"></span>
+                        RESTAURANDO...
+                      </>
+                    ) : (
+                      <>
+                        <RotateCcw className="w-4 h-4" />
+                        RESTAURAR AVATARES
                       </>
                     )}
                   </button>
