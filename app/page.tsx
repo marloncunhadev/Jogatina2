@@ -813,6 +813,20 @@ export default function Home() {
             setActiveTable(dbActiveTable);
             localStorage.setItem('flip7_active_table', JSON.stringify(dbActiveTable));
           } else if (dbActiveTable && dbActiveTable.status === 'inactive') {
+            // Se o servidor estiver inativo mas houver uma mesa ativa local, preservamos a mesa local e sincronizamos de volta para o servidor
+            const localTable = localStorage.getItem('flip7_active_table');
+            if (localTable) {
+              try {
+                const parsed = JSON.parse(localTable);
+                if (parsed && parsed.status === 'active') {
+                  isLocalChangeRef.current = true;
+                  setActiveTable(parsed);
+                  return;
+                }
+              } catch (e) {
+                console.error("Error parsing local active table on hydration:", e);
+              }
+            }
             setActiveTable(null);
             localStorage.removeItem('flip7_active_table');
           }
@@ -1008,39 +1022,8 @@ export default function Home() {
     };
   }, [activeTab]);
 
-  // Poll active table state on other views (lower frequency) to keep dashboard sync
-  useEffect(() => {
-    if (activeTab === 'live' || activeTab === 'fullscreen_scoreboard') return;
-
-    let active = true;
-    const pollActiveTable = async () => {
-      try {
-        const res = await fetch('/api/active-table');
-        if (!active) return;
-        if (res.ok) {
-          const data = await res.json();
-          const tableData = data.status === 'inactive' ? null : data;
-          
-          setActiveTable((current) => {
-            if (JSON.stringify(current) !== JSON.stringify(tableData)) {
-              return tableData;
-            }
-            return current;
-          });
-        }
-      } catch (err) {
-        console.error("Error polling active table:", err);
-      }
-    };
-
-    pollActiveTable();
-    const interval = setInterval(pollActiveTable, 5000);
-
-    return () => {
-      active = false;
-      clearInterval(interval);
-    };
-  }, [activeTab]);
+  // Removido o polling de baixa frequência para o gerenciador de jogo. Como o gerenciador é a própria fonte de verdade,
+  // isso evita reverter alterações locais não salvas ou ticks de timer devido a respostas de polling assíncronas.
 
   const handleSelectGame = (gameId: string | null) => {
     setSelectedGame(gameId);
@@ -1435,6 +1418,7 @@ export default function Home() {
 
   const handleDrawFlip7Card = (cardValue: string) => {
     if (!activeTable) return;
+    isLocalChangeRef.current = true;
     const prevIndex = activeTable.activePlayerIndex;
     const player = activeTable.players[prevIndex];
     if (player.isBusted) return;
@@ -1524,6 +1508,7 @@ export default function Home() {
 
   const handleUndoLastFlip7Card = () => {
     if (drawnCards.length === 0) return;
+    isLocalChangeRef.current = true;
     const updatedCards = drawnCards.slice(0, -1);
     setDrawnCards(updatedCards);
     localStorage.setItem('flip7_drawn_cards', JSON.stringify(updatedCards));
@@ -1544,6 +1529,7 @@ export default function Home() {
   };
 
   const handleClearFlip7Cards = () => {
+    isLocalChangeRef.current = true;
     setDrawnCards([]);
     localStorage.setItem('flip7_drawn_cards', JSON.stringify([]));
 
