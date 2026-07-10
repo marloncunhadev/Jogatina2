@@ -1,108 +1,145 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
-
-const CACHE_FILE = path.join(process.cwd(), "active_table_cache.json");
+import { db } from "../../../src/db/index";
+import { sala } from "../../../src/db/schema";
+import { eq, desc } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
-function getCachedTables(): { [id: string]: any } {
+export async function GET(req: NextRequest) {
   try {
-    if (fs.existsSync(CACHE_FILE)) {
-      const data = fs.readFileSync(CACHE_FILE, "utf-8");
-      const parsed = JSON.parse(data);
-      if (parsed) {
-        if (parsed.tables && typeof parsed.tables === "object") {
-          return parsed.tables;
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+    const list = searchParams.get("list");
+
+    if (list === "true") {
+      const dbSalas = await db.select().from(sala).where(eq(sala.status, "active")).orderBy(desc(sala.createdAt));
+      const activeTablesList = dbSalas.map((s) => {
+        try {
+          return {
+            ...s,
+            players: JSON.parse(s.players),
+            createdAt: s.createdAt ? s.createdAt.toISOString() : new Date().toISOString(),
+          };
+        } catch (e) {
+          console.error("Error parsing players JSON for sala id:", s.id, e);
+          return {
+            ...s,
+            players: [],
+            createdAt: s.createdAt ? s.createdAt.toISOString() : new Date().toISOString(),
+          };
         }
-        // If it's a single table directly (legacy format)
-        if (parsed.id) {
-          return { [parsed.id]: parsed };
+      });
+      return NextResponse.json({ tables: activeTablesList });
+    }
+
+    if (id) {
+      const dbSalas = await db.select().from(sala).where(eq(sala.id, id)).limit(1);
+      if (dbSalas.length > 0) {
+        const s = dbSalas[0];
+        try {
+          return NextResponse.json({
+            ...s,
+            players: JSON.parse(s.players),
+            createdAt: s.createdAt ? s.createdAt.toISOString() : new Date().toISOString(),
+          });
+        } catch (e) {
+          console.error("Error parsing players JSON for sala id:", s.id, e);
+          return NextResponse.json({
+            ...s,
+            players: [],
+            createdAt: s.createdAt ? s.createdAt.toISOString() : new Date().toISOString(),
+          });
         }
       }
+      return NextResponse.json({ status: "inactive" });
     }
-  } catch (e) {
-    console.error("Error reading active table cache:", e);
+
+    // Default: return the latest active table
+    const dbSalas = await db.select().from(sala).where(eq(sala.status, "active")).orderBy(desc(sala.createdAt)).limit(1);
+    if (dbSalas.length > 0) {
+      const s = dbSalas[0];
+      try {
+        return NextResponse.json({
+          ...s,
+          players: JSON.parse(s.players),
+          createdAt: s.createdAt ? s.createdAt.toISOString() : new Date().toISOString(),
+        });
+      } catch (e) {
+        console.error("Error parsing players JSON for sala id:", s.id, e);
+        return NextResponse.json({
+          ...s,
+          players: [],
+          createdAt: s.createdAt ? s.createdAt.toISOString() : new Date().toISOString(),
+        });
+      }
+    }
+
+    return NextResponse.json({ status: "inactive" });
+  } catch (error) {
+    console.error("Failed to fetch active table from database:", error);
+    return NextResponse.json({ error: "Failed to fetch active table" }, { status: 500 });
   }
-  return {};
-}
-
-function saveCachedTables(tables: { [id: string]: any }) {
-  try {
-    fs.writeFileSync(CACHE_FILE, JSON.stringify({ tables }, null, 2), "utf-8");
-  } catch (e) {
-    console.error("Error writing active table cache:", e);
-  }
-}
-
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const id = searchParams.get("id");
-  const list = searchParams.get("list");
-  
-  const tables = getCachedTables();
-
-  if (list === "true") {
-    const activeTablesList = Object.values(tables).filter((t: any) => t && t.status === "active");
-    // Sort by newest first
-    activeTablesList.sort((a: any, b: any) => {
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return dateB - dateA;
-    });
-    return NextResponse.json({ tables: activeTablesList });
-  }
-
-  if (id) {
-    const table = tables[id];
-    return NextResponse.json(table || { status: "inactive" });
-  }
-
-  // Default: return the latest active table
-  const activeTablesList = Object.values(tables).filter((t: any) => t && t.status === "active");
-  if (activeTablesList.length > 0) {
-    // Sort by newest first
-    activeTablesList.sort((a: any, b: any) => {
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return dateB - dateA;
-    });
-    return NextResponse.json(activeTablesList[0]);
-  }
-
-  return NextResponse.json({ status: "inactive" });
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const tables = getCachedTables();
 
     if (body.id) {
       if (body.status === "inactive") {
-        tables[body.id] = { ...tables[body.id], status: "inactive" };
+        await db.update(sala)
+          .set({ status: "inactive" })
+          .where(eq(sala.id, body.id));
       } else {
-        tables[body.id] = body;
+        const parsedCreatedAt = body.createdAt ? new Date(body.createdAt) : new Date();
+        const serializedPlayers = JSON.stringify(body.players);
+
+        const existing = await db.select().from(sala).where(eq(sala.id, body.id)).limit(1);
+        if (existing.length > 0) {
+          await db.update(sala)
+            .set({
+              name: body.name,
+              targetScore: body.targetScore,
+              maxRounds: body.maxRounds,
+              currentRound: body.currentRound,
+              status: body.status || "active",
+              players: serializedPlayers,
+              activePlayerIndex: body.activePlayerIndex,
+              gameTimeSeconds: body.gameTimeSeconds || 0,
+              game: body.game || "flip7",
+            })
+            .where(eq(sala.id, body.id));
+        } else {
+          await db.insert(sala)
+            .values({
+              id: body.id,
+              name: body.name,
+              targetScore: body.targetScore,
+              maxRounds: body.maxRounds,
+              currentRound: body.currentRound,
+              status: body.status || "active",
+              players: serializedPlayers,
+              activePlayerIndex: body.activePlayerIndex,
+              createdAt: parsedCreatedAt,
+              gameTimeSeconds: body.gameTimeSeconds || 0,
+              game: body.game || "flip7",
+            });
+        }
       }
     } else if (body.status === "inactive") {
-      // If we don't have an ID but want to make inactive, try to mark the latest active table as inactive
-      const activeTables = Object.values(tables).filter((t: any) => t && t.status === "active");
-      if (activeTables.length > 0) {
-        activeTables.sort((a: any, b: any) => {
-          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return dateB - dateA;
-        });
-        const latest = activeTables[0];
-        tables[latest.id] = { ...latest, status: "inactive" };
+      const activeSalas = await db.select().from(sala).where(eq(sala.status, "active")).orderBy(desc(sala.createdAt)).limit(1);
+      if (activeSalas.length > 0) {
+        await db.update(sala)
+          .set({ status: "inactive" })
+          .where(eq(sala.id, activeSalas[0].id));
       }
     }
 
-    saveCachedTables(tables);
     return NextResponse.json({ success: true, table: body });
   } catch (error) {
-    console.error("Failed to update active table:", error);
+    console.error("Failed to update active table in database:", error);
     return NextResponse.json({ error: "Failed to update active table" }, { status: 500 });
   }
 }
+
 
