@@ -29,7 +29,10 @@ import {
   RotateCcw,
   LogOut,
   Gamepad2,
-  Sparkles
+  Sparkles,
+  Tv,
+  Minimize2,
+  Award
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
@@ -1970,6 +1973,297 @@ export default function Home() {
     );
   }
 
+  if (activeTab === 'fullscreen_scoreboard') {
+    const isFlip7 = (activeTable?.game || selectedGame || 'flip7') === 'flip7';
+    const hasActiveMatch = activeTable && activeTable.status === 'active';
+    
+    // Sort players by totalScore descending
+    const sortedPlayers = hasActiveMatch && activeTable
+      ? [...activeTable.players].sort((a, b) => b.totalScore - a.totalScore)
+      : [];
+
+    // Helper to get highest score/combo
+    const getHighestComboVal = () => {
+      let highestScore = 0;
+      let highestPlayerName = 'Nenhum';
+
+      if (hasActiveMatch && activeTable) {
+        activeTable.players.forEach((p) => {
+          p.history.forEach((score) => {
+            if (score > highestScore) {
+              highestScore = score;
+              highestPlayerName = p.name;
+            }
+          });
+          if (p.score > highestScore) {
+            highestScore = p.score;
+            highestPlayerName = p.name;
+          }
+        });
+      }
+
+      if (highestScore === 0 && history.length > 0) {
+        const filteredHistory = history.filter((h) => h.game === selectedGame || (!h.game && selectedGame === 'flip7'));
+        if (filteredHistory.length > 0) {
+          const sortedHistory = [...filteredHistory].sort((a, b) => b.winnerScore - a.winnerScore);
+          if (sortedHistory[0]) {
+            highestScore = sortedHistory[0].winnerScore;
+            highestPlayerName = sortedHistory[0].winnerName;
+          }
+        }
+      }
+
+      if (highestScore === 0) {
+        return 'NENHUM (0)';
+      }
+
+      return `${highestScore} (${highestPlayerName.toUpperCase()})`;
+    };
+
+    return (
+      <div className="min-h-screen text-white bg-[#0a0908] font-sans flex flex-col justify-between p-6 md:p-10 relative overflow-hidden select-none">
+        {/* Background Subtle Mesh Glows */}
+        <div className="absolute top-[-25%] right-[-15%] w-[800px] h-[800px] bg-yellow-500/5 rounded-full blur-[160px] pointer-events-none"></div>
+        <div className="absolute bottom-[-25%] left-[-15%] w-[800px] h-[800px] bg-purple-500/5 rounded-full blur-[160px] pointer-events-none"></div>
+
+        {/* HEADER */}
+        <div className="w-full flex flex-col md:flex-row justify-between items-start md:items-center border-b border-neutral-800/60 pb-6 mb-8 relative z-10 gap-4">
+          <div>
+            <p className="font-mono text-xs font-black text-yellow-500 uppercase tracking-widest mb-1">
+              LIVE COMPETITION
+            </p>
+            <h1 className="font-display font-black text-3xl md:text-5xl text-yellow-400 tracking-tighter uppercase leading-none">
+              {(GAMES.find((g) => g.id === selectedGame)?.name || 'FLIP7').toUpperCase()} - SCOREBOARD
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-6 self-stretch md:self-auto justify-between md:justify-end border-t md:border-t-0 border-neutral-800 pt-4 md:pt-0">
+            {hasActiveMatch && activeTable ? (
+              <>
+                <div className="flex items-center gap-4 pr-6 border-r border-neutral-800">
+                  <div className="text-right">
+                    <p className="font-mono text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-0.5">ROUND</p>
+                    <p className="font-display font-black text-2xl md:text-3xl text-white tracking-tight">
+                      {activeTable.currentRound.toString().padStart(2, '0')} <span className="text-neutral-600">/</span> {activeTable.maxRounds.toString().padStart(2, '0')}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="font-mono text-[10px] font-bold text-yellow-500 uppercase tracking-wider mb-0.5">TARGET</p>
+                    <p className="font-display font-black text-2xl md:text-3xl text-yellow-400 tracking-tight">
+                      {activeTable.targetScore}
+                    </p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-neutral-500 font-mono text-xs uppercase tracking-wider">
+                Sem Partida Ativa
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* MAIN BODY / LIST OF PLAYERS */}
+        <div className="flex-grow w-full max-w-7xl mx-auto flex flex-col justify-center gap-4 mb-8 relative z-10">
+          {!hasActiveMatch ? (
+            <div className="text-center py-20 bg-[#121110] border border-neutral-800/60 rounded-3xl p-8 max-w-xl mx-auto space-y-6 shadow-2xl">
+              <div className="w-20 h-20 bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 rounded-full flex items-center justify-center mx-auto shadow-inner animate-pulse">
+                <Tv className="w-10 h-10" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-display font-black text-2xl uppercase tracking-tight text-yellow-400">
+                  Nenhuma Mesa Ativa
+                </h3>
+                <p className="text-neutral-400 text-sm leading-relaxed max-w-sm mx-auto">
+                  Para exibir o placar em tempo real em um tablet ou tela cheia, inicie uma mesa de jogo no painel.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                <button
+                  onClick={() => {
+                    handleQuickAddScore();
+                    setActiveTab('dashboard');
+                  }}
+                  className="px-5 py-3 bg-yellow-400 hover:bg-yellow-300 text-yellow-950 font-display font-black text-xs uppercase rounded-xl border-b-4 border-yellow-600 transition-all cursor-pointer"
+                >
+                  Mesa Rápida
+                </button>
+                <button
+                  onClick={() => setActiveTab('dashboard')}
+                  className="px-5 py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-mono text-xs uppercase rounded-xl border border-neutral-700 transition-all cursor-pointer"
+                >
+                  Voltar ao Painel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3.5 w-full">
+              {sortedPlayers.map((player, idx) => {
+                const rank = idx + 1;
+                const isLeader = idx === 0;
+                
+                // Active turn indicators
+                const isItsTurn = activeTable && activeTable.activePlayerIndex === activeTable.players.findIndex(p => p.id === player.id);
+                
+                // Calculate progress to target
+                const targetVal = activeTable?.targetScore || 100;
+                const progressPercent = Math.min(100, Math.round((player.totalScore / targetVal) * 100));
+
+                // Color themes for progress bars matching the image
+                let progressColorClass = 'bg-gradient-to-r from-zinc-600 to-zinc-400';
+                if (isLeader) {
+                  progressColorClass = 'bg-gradient-to-r from-yellow-500 to-amber-300 shadow-[0_0_10px_rgba(234,179,8,0.3)]';
+                } else if (rank === 2) {
+                  progressColorClass = 'bg-gradient-to-r from-purple-500 to-indigo-400 shadow-[0_0_10px_rgba(168,85,247,0.3)]';
+                } else if (rank === 3) {
+                  progressColorClass = 'bg-gradient-to-r from-cyan-400 to-teal-300 shadow-[0_0_10px_rgba(34,211,238,0.3)]';
+                } else if (rank === 4) {
+                  progressColorClass = 'bg-gradient-to-r from-orange-500 to-red-400 shadow-[0_0_10px_rgba(249,115,22,0.3)]';
+                }
+
+                return (
+                  <div
+                    key={player.id}
+                    className={`relative rounded-2xl p-4 md:p-5 flex items-center justify-between border transition-all duration-300 ${
+                      isLeader
+                        ? 'bg-[#181613] border-yellow-500/40 shadow-[0_4px_25px_rgba(234,179,8,0.06)]'
+                        : isItsTurn
+                        ? 'bg-[#151413] border-neutral-700 shadow-[0_4px_20px_rgba(255,255,255,0.02)]'
+                        : 'bg-[#121110]/95 border-neutral-800/80 hover:border-neutral-800'
+                    } ${player.isBusted ? 'opacity-50' : ''}`}
+                  >
+                    {/* LEADER BADGE */}
+                    {isLeader && (
+                      <div className="absolute top-0 right-10 -translate-y-1/2 bg-yellow-400 text-yellow-950 text-[9px] font-mono font-black px-2.5 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-1 border border-yellow-500 shadow-md">
+                        <Award className="w-3 h-3 fill-yellow-950 text-yellow-950" /> LEADER
+                      </div>
+                    )}
+
+                    {/* TURN PILOT GLOW */}
+                    {isItsTurn && !player.isBusted && (
+                      <div className="absolute top-0 left-10 -translate-y-1/2 bg-emerald-500 text-emerald-950 text-[9px] font-mono font-black px-2.5 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-1 animate-pulse border border-emerald-400">
+                        <span className="w-1.5 h-1.5 bg-emerald-950 rounded-full"></span> JOGANDO AGORA
+                      </div>
+                    )}
+
+                    {/* Left Column: Avatar & Details */}
+                    <div className="flex items-center gap-4 min-w-[150px] md:min-w-[220px]">
+                      <div className="relative">
+                        <div className={`w-14 h-14 md:w-16 md:h-16 rounded-full overflow-hidden border-2 flex items-center justify-center p-0.5 bg-neutral-900 ${
+                          isLeader ? 'border-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.2)]' : isItsTurn ? 'border-emerald-500' : 'border-neutral-700'
+                        }`}>
+                          <img
+                            src={player.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${player.name}`}
+                            alt={player.name}
+                            className="w-full h-full rounded-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                        <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-neutral-900 border border-neutral-700 flex items-center justify-center font-mono font-black text-[10px] text-neutral-300">
+                          #{rank}
+                        </div>
+                      </div>
+
+                      <div className="min-w-0">
+                        <h3 className="font-display font-black text-lg md:text-2xl text-white tracking-tight truncate leading-tight uppercase">
+                          {player.name}
+                        </h3>
+                        <p className="font-mono text-[9px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">
+                          {player.isBusted ? 'ESTOUROU' : isLeader ? 'LÍDER RANK #1' : `COLOCAÇÃO #${rank}`}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Center Column: Progress bar with Busted Overlay */}
+                    <div className="hidden sm:flex flex-col flex-grow mx-8 max-w-xl md:max-w-3xl relative">
+                      {/* Label & percent */}
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="font-mono text-[9px] font-bold text-neutral-400 uppercase tracking-wider">
+                          PROGRESS TO TARGET
+                        </span>
+                        <span className={`font-mono text-[10px] font-black ${isLeader ? 'text-yellow-400' : 'text-neutral-300'}`}>
+                          {progressPercent}%
+                        </span>
+                      </div>
+
+                      {/* Track */}
+                      <div className="h-3 w-full bg-neutral-950 border border-neutral-800/80 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-700 ease-out`}
+                          style={{ width: `${progressPercent}%` }}
+                        >
+                          <div className={`w-full h-full ${progressColorClass}`}></div>
+                        </div>
+                      </div>
+
+                      {/* BUSTED WATERMARK OVERLAY */}
+                      {player.isBusted && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 select-none">
+                          <div className="border-2 border-red-500/30 text-red-500/40 bg-red-950/10 px-4 py-1 rounded-lg text-lg md:text-2xl font-display font-black tracking-widest rotate-[-5deg] uppercase">
+                            BUSTED
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right Column: Total Score */}
+                    <div className="text-right min-w-[70px] md:min-w-[120px]">
+                      <p className="font-mono text-[9px] font-bold text-neutral-500 uppercase tracking-wider mb-0.5">TOTAL</p>
+                      <p className={`font-display font-black text-3xl md:text-5xl tracking-tight leading-none ${isLeader ? 'text-yellow-400' : 'text-white'}`}>
+                        {player.totalScore}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* FOOTER */}
+        <div className="w-full flex flex-col sm:flex-row justify-between items-center border-t border-neutral-800/60 pt-6 relative z-10 gap-4 mt-auto">
+          <div className="flex flex-wrap gap-3 items-center justify-center sm:justify-start">
+            <div className="bg-[#121110] border border-neutral-800 rounded-full px-4 py-2 font-mono text-[10px] text-neutral-300 flex items-center gap-1.5 uppercase tracking-wider">
+              <span className="text-yellow-400">⚡</span> HIGHEST COMBO: <span className="font-bold text-yellow-400">{getHighestComboVal()}</span>
+            </div>
+            
+            {hasActiveMatch && activeTable && (
+              <div className="bg-[#121110] border border-neutral-800 rounded-full px-4 py-2 font-mono text-[10px] text-neutral-300 flex items-center gap-1.5 uppercase tracking-wider">
+                <span>👥</span> {activeTable.players.length} PLAYERS REMAINING
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className="px-5 py-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-mono text-xs uppercase tracking-wider rounded-xl border border-neutral-800 transition-all cursor-pointer flex items-center gap-2"
+            >
+              <Minimize2 className="w-4 h-4" />
+              <span>Sair Tela Cheia</span>
+            </button>
+
+            <button
+              onClick={() => {
+                if (hasActiveMatch && activeTable) {
+                  setActiveTab('live');
+                } else {
+                  setActiveTab('dashboard');
+                }
+              }}
+              className="px-6 py-3.5 bg-yellow-400 hover:bg-yellow-300 text-yellow-950 font-display font-black text-xs uppercase tracking-wider rounded-xl border-b-4 border-yellow-600 transition-all cursor-pointer flex items-center gap-2 shadow-lg animate-pulse"
+            >
+              <span>{hasActiveMatch ? 'Gerenciar Partida ⚔️' : 'Ir para o Painel'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen text-on-background bg-background font-sans relative pb-20 md:pb-0">
       
@@ -2023,6 +2317,13 @@ export default function Home() {
             title="Configurações"
           >
             <Settings className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={() => setActiveTab('fullscreen_scoreboard')}
+            className={`flex items-center justify-center text-primary hover:text-primary-fixed hover:bg-surface-container-high transition-colors p-2 rounded-full cursor-pointer ${activeTab === 'fullscreen_scoreboard' ? 'bg-surface-container-high text-primary-container' : ''}`}
+            title="Placar Tela Cheia"
+          >
+            <Tv className="w-5 h-5" />
           </button>
           <button 
             onClick={handleLogout}
@@ -2110,6 +2411,18 @@ export default function Home() {
           >
             <Settings className="w-5 h-5 text-tertiary-container" />
             <span className="font-mono text-xs tracking-wider uppercase">Configurações</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('fullscreen_scoreboard')}
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-all cursor-pointer ${
+              activeTab === 'fullscreen_scoreboard'
+                ? 'bg-secondary-container text-on-secondary-container font-bold border-b-2 border-on-secondary-container'
+                : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
+            }`}
+          >
+            <Tv className="w-5 h-5 text-tertiary-container" />
+            <span className="font-mono text-xs tracking-wider uppercase">Placar Cheio 📺</span>
           </button>
 
           {activeTable && activeTable.status === 'active' && (
