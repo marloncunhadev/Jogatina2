@@ -2538,7 +2538,7 @@ export default function Home() {
             }`}
           >
             <Tv className="w-5 h-5 text-tertiary-container" />
-            <span className="font-mono text-xs tracking-wider uppercase">Placar Cheio 📺</span>
+            <span className="font-mono text-xs tracking-wider uppercase">Placar</span>
           </button>
 
           {activeTable && activeTable.status === 'active' && (
