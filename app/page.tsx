@@ -1008,9 +1008,16 @@ export default function Home() {
     let active = true;
     const pollScoreboardData = async () => {
       try {
+        const timestamp = Date.now();
         if (selectedScoreboardTableId) {
-          // High frequency polling for the selected table
-          const res = await fetch(`/api/active-table?id=${selectedScoreboardTableId}`);
+          // Polling for the selected table every 5 seconds
+          const res = await fetch(`/api/active-table?id=${selectedScoreboardTableId}&_t=${timestamp}`, {
+            cache: 'no-store',
+            headers: {
+              'Pragma': 'no-cache',
+              'Cache-Control': 'no-cache'
+            }
+          });
           if (!active) return;
           if (res.ok) {
             const data = await res.json();
@@ -1024,8 +1031,14 @@ export default function Home() {
             });
           }
         } else {
-          // Polling the list of open tables
-          const res = await fetch('/api/active-table?list=true');
+          // Polling the list of open tables every 5 seconds
+          const res = await fetch(`/api/active-table?list=true&_t=${timestamp}`, {
+            cache: 'no-store',
+            headers: {
+              'Pragma': 'no-cache',
+              'Cache-Control': 'no-cache'
+            }
+          });
           if (!active) return;
           if (res.ok) {
             const data = await res.json();
@@ -1045,7 +1058,7 @@ export default function Home() {
     };
 
     pollScoreboardData();
-    const interval = setInterval(pollScoreboardData, selectedScoreboardTableId ? 800 : 3000);
+    const interval = setInterval(pollScoreboardData, 5000);
 
     return () => {
       active = false;
