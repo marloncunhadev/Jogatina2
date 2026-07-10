@@ -602,13 +602,24 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
 
   // Selected Game states: 'flip7' | 'uno' | 'uno_flip' | 'uno_no_mercy' | 'catan' | 'general' | null
-  const [selectedGame, setSelectedGame] = useState<string | null>(null);
+  const [selectedGame, setSelectedGame] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('flip7_selected_game') || null;
+    }
+    return null;
+  });
 
   // Custom live score points input
   const [customPoints, setCustomPoints] = useState<string>('');
 
   // FLIP 7 Active cards drawn in the current turn
-  const [drawnCards, setDrawnCards] = useState<string[]>([]);
+  const [drawnCards, setDrawnCards] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('flip7_drawn_cards');
+      return stored ? JSON.parse(stored) : [];
+    }
+    return [];
+  });
 
   // Hydration safety flag
   const [isHydrated, setIsHydrated] = useState<boolean>(false);
@@ -625,16 +636,53 @@ export default function Home() {
   const [authError, setAuthError] = useState<string>('');
 
   // Core Entity States
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [history, setHistory] = useState<MatchHistory[]>([]);
-  const [activeTable, setActiveTable] = useState<Table | null>(null);
+  const isLocalChangeRef = useRef(false);
+  const [players, setPlayers] = useState<Player[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('flip7_players');
+      return stored ? JSON.parse(stored) : INITIAL_PLAYERS;
+    }
+    return INITIAL_PLAYERS;
+  });
+  const [history, setHistory] = useState<MatchHistory[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('flip7_history');
+      return stored ? JSON.parse(stored) : INITIAL_MATCHES;
+    }
+    return INITIAL_MATCHES;
+  });
+  const [activeTable, setActiveTable] = useState<Table | null>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('flip7_active_table');
+      return stored ? JSON.parse(stored) : DEFAULT_ACTIVE_TABLE;
+    }
+    return DEFAULT_ACTIVE_TABLE;
+  });
   const [dbHistory, setDbHistory] = useState<DBMatchHistory[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(false);
 
   // App settings and preferences
-  const [prefSound, setPrefSound] = useState<boolean>(true);
-  const [prefQuickScore, setPrefQuickScore] = useState<boolean>(false);
-  const [prefStrictRules, setPrefStrictRules] = useState<boolean>(false);
+  const [prefSound, setPrefSound] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('flip7_pref_sound');
+      return stored !== null ? stored === 'true' : true;
+    }
+    return true;
+  });
+  const [prefQuickScore, setPrefQuickScore] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('flip7_pref_quick_score');
+      return stored !== null ? stored === 'true' : false;
+    }
+    return false;
+  });
+  const [prefStrictRules, setPrefStrictRules] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('flip7_pref_strict_rules');
+      return stored !== null ? stored === 'true' : false;
+    }
+    return false;
+  });
   const [isClearingHistory, setIsClearingHistory] = useState<boolean>(false);
   const [settingsMessage, setSettingsMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -643,7 +691,16 @@ export default function Home() {
   const [newTableName, setNewTableName] = useState<string>('');
   const [newTargetScore, setNewTargetScore] = useState<number>(200);
   const [newMaxRounds, setNewMaxRounds] = useState<number>(7);
-  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('flip7_players');
+      const parsed = stored ? JSON.parse(stored) : INITIAL_PLAYERS;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.slice(0, 4).map((p: any) => p.id);
+      }
+    }
+    return INITIAL_PLAYERS.slice(0, 4).map((p: any) => p.id);
+  });
 
   // Add Player Modal states
   const [isAddPlayerModalOpen, setIsAddPlayerModalOpen] = useState<boolean>(false);
@@ -677,38 +734,7 @@ export default function Home() {
         supabase.auth.signOut().catch(() => {});
       }
 
-      // Fetch players from database API
-      fetch('/api/players')
-        .then((res) => res.json())
-        .then((dbPlayers) => {
-          if (Array.isArray(dbPlayers)) {
-            setPlayers(dbPlayers);
-            localStorage.setItem('flip7_players', JSON.stringify(dbPlayers));
-            setSelectedPlayerIds((prev) => {
-              const validPrev = prev.filter(id => dbPlayers.some(p => p.id === id));
-              if (validPrev.length === 0) {
-                return dbPlayers.slice(0, 4).map((p: any) => p.id);
-              }
-              return validPrev;
-            });
-          }
-        })
-        .catch((err) => console.error("Error loading players from database:", err));
-
-      // Fetch active table state from database API
-      fetch('/api/active-table')
-        .then((res) => res.json())
-        .then((dbActiveTable) => {
-          if (dbActiveTable && dbActiveTable.status === 'active') {
-            setActiveTable(dbActiveTable);
-            localStorage.setItem('flip7_active_table', JSON.stringify(dbActiveTable));
-          } else if (dbActiveTable && dbActiveTable.status === 'inactive') {
-            setActiveTable(null);
-            localStorage.removeItem('flip7_active_table');
-          }
-        })
-        .catch((err) => console.error("Error loading active table from database:", err));
-
+      // Read from local storage first to hydrate immediately
       const storedPlayers = localStorage.getItem('flip7_players');
       const storedHistory = localStorage.getItem('flip7_history');
       const storedActiveTable = localStorage.getItem('flip7_active_table');
@@ -739,7 +765,6 @@ export default function Home() {
           JSON.stringify([{ name: 'On Idéias Criativas', email: 'admin@flip7.com', password: 'senha123' }])
         );
       } else {
-        // Also migrate existing user list in localStorage if "Game Master" is present
         try {
           const parsedUsers = JSON.parse(storedUsers);
           let migrated = false;
@@ -757,6 +782,42 @@ export default function Home() {
           console.error(e);
         }
       }
+
+      // Mark hydration complete asynchronously to avoid synchronous setState inside useEffect
+      setTimeout(() => {
+        setIsHydrated(true);
+      }, 0);
+
+      // Now fetch fresh data from database APIs to override local storage if changed
+      fetch('/api/players')
+        .then((res) => res.json())
+        .then((dbPlayers) => {
+          if (Array.isArray(dbPlayers)) {
+            setPlayers(dbPlayers);
+            localStorage.setItem('flip7_players', JSON.stringify(dbPlayers));
+            setSelectedPlayerIds((prev) => {
+              const validPrev = prev.filter(id => dbPlayers.some(p => p.id === id));
+              if (validPrev.length === 0) {
+                return dbPlayers.slice(0, 4).map((p: any) => p.id);
+              }
+              return validPrev;
+            });
+          }
+        })
+        .catch((err) => console.error("Error loading players from database:", err));
+
+      fetch('/api/active-table')
+        .then((res) => res.json())
+        .then((dbActiveTable) => {
+          if (dbActiveTable && dbActiveTable.status === 'active') {
+            setActiveTable(dbActiveTable);
+            localStorage.setItem('flip7_active_table', JSON.stringify(dbActiveTable));
+          } else if (dbActiveTable && dbActiveTable.status === 'inactive') {
+            setActiveTable(null);
+            localStorage.removeItem('flip7_active_table');
+          }
+        })
+        .catch((err) => console.error("Error loading active table from database:", err));
 
       // Supabase listener
       let unsubscribeAuth: (() => void) | null = null;
@@ -790,36 +851,6 @@ export default function Home() {
         });
         unsubscribeAuth = subscription.unsubscribe;
       }
-
-      setTimeout(() => {
-        setPlayers(parsedPlayers);
-        setHistory(parsedHistory);
-        setActiveTable(parsedActiveTable);
-        setDrawnCards(parsedDrawnCards);
-        if (storedGame) {
-          setSelectedGame(storedGame);
-        }
-        if (storedSound !== null) {
-          setPrefSound(storedSound === 'true');
-        }
-        if (storedQuickScore !== null) {
-          setPrefQuickScore(storedQuickScore === 'true');
-        }
-        if (storedStrictRules !== null) {
-          setPrefStrictRules(storedStrictRules === 'true');
-        }
-        if (!supabase && parsedUser) {
-          setCurrentUser(parsedUser);
-          setIsLoggedIn(true);
-        }
-        // Pre-select up to 4 players by default for New Game
-        if (Array.isArray(parsedPlayers) && parsedPlayers.length > 0) {
-          setSelectedPlayerIds(parsedPlayers.slice(0, 4).map((p: any) => p.id));
-        } else {
-          setSelectedPlayerIds([]);
-        }
-        setIsHydrated(true);
-      }, 0);
 
       return () => {
         if (unsubscribeAuth) unsubscribeAuth();
@@ -885,7 +916,7 @@ export default function Home() {
       fetch('/api/players')
         .then((res) => res.json())
         .then((dbPlayers) => {
-          if (Array.isArray(dbPlayers) && dbPlayers.length > 0) {
+          if (Array.isArray(dbPlayers)) {
             setPlayers(dbPlayers);
             localStorage.setItem('flip7_players', JSON.stringify(dbPlayers));
           }
@@ -909,6 +940,7 @@ export default function Home() {
   };
 
   const saveActiveTableToLocalStorage = (updatedTable: Table | null) => {
+    isLocalChangeRef.current = true;
     setActiveTable(updatedTable);
     if (updatedTable) {
       localStorage.setItem('flip7_active_table', JSON.stringify(updatedTable));
@@ -921,20 +953,11 @@ export default function Home() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    // Create a sync key based on everything except gameTimeSeconds to avoid redundant calls
-    const syncKey = activeTable ? JSON.stringify({
-      id: activeTable.id,
-      status: activeTable.status,
-      currentRound: activeTable.currentRound,
-      activePlayerIndex: activeTable.activePlayerIndex,
-      players: activeTable.players,
-      targetScore: activeTable.targetScore,
-      game: activeTable.game
-    }) : 'null';
-
-    // Ref to avoid duplicate or redundant posts
-    if ((window as any)._lastSyncKey === syncKey) return;
-    (window as any)._lastSyncKey = syncKey;
+    // ONLY push updates if this was a direct local change from user action!
+    if (!isLocalChangeRef.current) {
+      return;
+    }
+    isLocalChangeRef.current = false; // Reset the flag for subsequent updates
 
     if (activeTable) {
       fetch('/api/active-table', {
@@ -951,7 +974,7 @@ export default function Home() {
     }
   }, [activeTable]);
 
-  // Poll active table state from server when on fullscreen scoreboard (high frequency)
+  // Poll active table state from server when on fullscreen scoreboard (high frequency for instant updates)
   useEffect(() => {
     if (activeTab !== 'fullscreen_scoreboard') return;
 
@@ -977,7 +1000,7 @@ export default function Home() {
     };
 
     pollActiveTable();
-    const interval = setInterval(pollActiveTable, 1200);
+    const interval = setInterval(pollActiveTable, 800);
 
     return () => {
       active = false;
@@ -1044,13 +1067,14 @@ export default function Home() {
 
   // Game timer ticking
   useEffect(() => {
-    if (activeTable && activeTable.status === 'active' && activeTab === 'live') {
+    if (activeTable && activeTable.status === 'active') {
       timerRef.current = setInterval(() => {
+        // We do NOT set isLocalChangeRef.current = true here so that timer ticks are purely local and do not spam the network with POSTs.
         setActiveTable((prevTable) => {
           if (!prevTable) return null;
           const updated = {
             ...prevTable,
-            gameTimeSeconds: prevTable.gameTimeSeconds + 1,
+            gameTimeSeconds: (prevTable.gameTimeSeconds || 0) + 1,
           };
           localStorage.setItem('flip7_active_table', JSON.stringify(updated));
           return updated;
@@ -1062,7 +1086,7 @@ export default function Home() {
       if (timerRef.current) clearInterval(timerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTable?.id, activeTable?.status, activeTab]);
+  }, [activeTable?.id, activeTable?.status]);
 
   if (!isHydrated) {
     return (
@@ -1540,6 +1564,7 @@ export default function Home() {
   const handleAddLivePoints = (points: number) => {
     if (!activeTable) return;
 
+    isLocalChangeRef.current = true;
     setActiveTable((prevTable) => {
       if (!prevTable) return null;
       const updated = { ...prevTable };
@@ -1572,6 +1597,7 @@ export default function Home() {
     };
     setCurrentRoundLogs((prev) => [logMsg, ...prev]);
 
+    isLocalChangeRef.current = true;
     setActiveTable((prevTable) => {
       if (!prevTable) return null;
       const updated = { ...prevTable };
@@ -1608,6 +1634,7 @@ export default function Home() {
     };
     setCurrentRoundLogs((prev) => [logMsg, ...prev]);
 
+    isLocalChangeRef.current = true;
     setActiveTable((prevTable) => {
       if (!prevTable) return null;
       const updated = { ...prevTable };
@@ -1647,6 +1674,7 @@ export default function Home() {
     };
     setCurrentRoundLogs((prev) => [logMsg, ...prev]);
 
+    isLocalChangeRef.current = true;
     setActiveTable((prevTable) => {
       if (!prevTable) return null;
       const updated = { ...prevTable };
@@ -3414,6 +3442,7 @@ export default function Home() {
 
             {/* Players Status Stack */}
             <div className="space-y-4">
+              {/* eslint-disable-next-line react-hooks/refs */}
               {activeTable.players.map((p, index) => {
                 const isActive = activeTable.activePlayerIndex === index;
                 const isWinnerResult = activeTable.status === 'completed';
