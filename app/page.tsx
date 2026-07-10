@@ -637,6 +637,12 @@ export default function Home() {
 
   // Core Entity States
   const isLocalChangeRef = useRef(false);
+  const lastActiveTableIdRef = useRef<string | null>(null);
+
+  const [openTables, setOpenTables] = useState<Table[]>([]);
+  const [selectedScoreboardTableId, setSelectedScoreboardTableId] = useState<string | null>(null);
+  const [viewingTable, setViewingTable] = useState<Table | null>(null);
+
   const [players, setPlayers] = useState<Player[]>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('flip7_players');
@@ -963,6 +969,13 @@ export default function Home() {
     }
   };
 
+  // Keep track of the last active table's ID
+  useEffect(() => {
+    if (activeTable) {
+      lastActiveTableIdRef.current = activeTable.id;
+    }
+  }, [activeTable]);
+
   // Sync activeTable state to the database via API
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -983,44 +996,62 @@ export default function Home() {
       fetch('/api/active-table', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'inactive' }),
+        body: JSON.stringify({ status: 'inactive', id: lastActiveTableIdRef.current }),
       }).catch((err) => console.error("Error clearing active table:", err));
     }
   }, [activeTable]);
 
-  // Poll active table state from server when on fullscreen scoreboard (high frequency for instant updates)
+  // Poll active table state / list from server when on fullscreen scoreboard
   useEffect(() => {
     if (activeTab !== 'fullscreen_scoreboard') return;
 
     let active = true;
-    const pollActiveTable = async () => {
+    const pollScoreboardData = async () => {
       try {
-        const res = await fetch('/api/active-table');
-        if (!active) return;
-        if (res.ok) {
-          const data = await res.json();
-          const tableData = data.status === 'inactive' ? null : data;
-          
-          setActiveTable((current) => {
-            if (JSON.stringify(current) !== JSON.stringify(tableData)) {
-              return tableData;
-            }
-            return current;
-          });
+        if (selectedScoreboardTableId) {
+          // High frequency polling for the selected table
+          const res = await fetch(`/api/active-table?id=${selectedScoreboardTableId}`);
+          if (!active) return;
+          if (res.ok) {
+            const data = await res.json();
+            const tableData = data.status === 'inactive' ? null : data;
+            
+            setViewingTable((current) => {
+              if (JSON.stringify(current) !== JSON.stringify(tableData)) {
+                return tableData;
+              }
+              return current;
+            });
+          }
+        } else {
+          // Polling the list of open tables
+          const res = await fetch('/api/active-table?list=true');
+          if (!active) return;
+          if (res.ok) {
+            const data = await res.json();
+            const list = data.tables || [];
+            
+            setOpenTables((current) => {
+              if (JSON.stringify(current) !== JSON.stringify(list)) {
+                return list;
+              }
+              return current;
+            });
+          }
         }
       } catch (err) {
-        console.error("Error polling active table:", err);
+        console.error("Error polling scoreboard data:", err);
       }
     };
 
-    pollActiveTable();
-    const interval = setInterval(pollActiveTable, 800);
+    pollScoreboardData();
+    const interval = setInterval(pollScoreboardData, selectedScoreboardTableId ? 800 : 3000);
 
     return () => {
       active = false;
       clearInterval(interval);
     };
-  }, [activeTab]);
+  }, [activeTab, selectedScoreboardTableId]);
 
   // Removido o polling de baixa frequência para o gerenciador de jogo. Como o gerenciador é a própria fonte de verdade,
   // isso evita reverter alterações locais não salvas ou ticks de timer devido a respostas de polling assíncronas.
@@ -2104,12 +2135,185 @@ export default function Home() {
   }
 
   if (activeTab === 'fullscreen_scoreboard') {
-    const isFlip7 = (activeTable?.game || selectedGame || 'flip7') === 'flip7';
-    const hasActiveMatch = activeTable && activeTable.status === 'active';
+    if (!selectedScoreboardTableId) {
+      // Render Table Selection Screen
+      return (
+        <div className="min-h-screen text-white bg-[#0a0908] font-sans flex flex-col justify-between p-6 md:p-10 relative overflow-hidden select-none">
+          {/* Background Subtle Mesh Glows */}
+          <div className="absolute top-[-25%] right-[-15%] w-[800px] h-[800px] bg-yellow-500/5 rounded-full blur-[160px] pointer-events-none"></div>
+          <div className="absolute bottom-[-25%] left-[-15%] w-[800px] h-[800px] bg-purple-500/5 rounded-full blur-[160px] pointer-events-none"></div>
+
+          {/* HEADER */}
+          <div className="w-full flex flex-col md:flex-row justify-between items-start md:items-center border-b border-neutral-800/60 pb-6 mb-8 relative z-10 gap-4">
+            <div>
+              <p className="font-mono text-xs font-black text-yellow-500 uppercase tracking-widest mb-1">
+                ACOMPANHAR COMPETIÇÃO
+              </p>
+              <h1 className="font-display font-black text-3xl md:text-5xl text-yellow-400 tracking-tighter uppercase leading-none">
+                SELECIONAR MESA ATIVA
+              </h1>
+              <p className="text-neutral-400 text-sm mt-2 max-w-xl">
+                Escolha uma das mesas ativas em andamento para exibir o placar em tempo real em tela cheia.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className="px-5 py-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-mono text-xs uppercase tracking-wider rounded-xl border border-neutral-800 transition-all cursor-pointer flex items-center gap-2"
+            >
+              Voltar ao Painel
+            </button>
+          </div>
+
+          {/* TABLE LIST / SELECTION BODY */}
+          <div className="flex-grow w-full max-w-5xl mx-auto flex flex-col justify-center gap-6 mb-8 relative z-10">
+            {openTables.length === 0 ? (
+              <div className="text-center py-20 bg-[#121110] border border-neutral-800/60 rounded-3xl p-8 max-w-xl mx-auto space-y-6 shadow-2xl">
+                <div className="w-20 h-20 bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 rounded-full flex items-center justify-center mx-auto shadow-inner animate-pulse">
+                  <Tv className="w-10 h-10" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-display font-black text-2xl uppercase tracking-tight text-yellow-400">
+                    Nenhuma Mesa Ativa no Servidor
+                  </h3>
+                  <p className="text-neutral-400 text-sm leading-relaxed max-w-sm mx-auto">
+                    Atualmente não há nenhuma mesa ativa sendo transmitida de outros dispositivos. Inicie um jogo no painel para transmitir!
+                  </p>
+                </div>
+                
+                {activeTable && activeTable.status === 'active' ? (
+                  <div className="pt-4 border-t border-neutral-800/60 mt-4 space-y-3">
+                    <p className="text-xs text-neutral-500">Você possui uma mesa ativa localmente:</p>
+                    <button
+                      onClick={() => {
+                        setSelectedScoreboardTableId(activeTable.id);
+                        setViewingTable(activeTable);
+                      }}
+                      className="w-full px-5 py-3.5 bg-yellow-400 hover:bg-yellow-300 text-yellow-950 font-display font-black text-xs uppercase rounded-xl border-b-4 border-yellow-600 transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg"
+                    >
+                      <span>Acompanhar Minha Mesa ({activeTable.name}) ⚔️</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                    <button
+                      onClick={() => {
+                        handleQuickAddScore();
+                        setActiveTab('dashboard');
+                      }}
+                      className="px-5 py-3 bg-yellow-400 hover:bg-yellow-300 text-yellow-950 font-display font-black text-xs uppercase rounded-xl border-b-4 border-yellow-600 transition-all cursor-pointer"
+                    >
+                      Iniciar Mesa Rápida
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                {openTables.map((table) => {
+                  const gameObj = GAMES.find((g) => g.id === table.game) || GAMES[0];
+                  return (
+                    <div
+                      key={table.id}
+                      className="bg-[#121110] border border-neutral-800 rounded-2xl p-5 hover:border-yellow-500/40 transition-all duration-300 flex flex-col justify-between gap-4 shadow-xl group"
+                    >
+                      <div>
+                        <div className="flex justify-between items-start">
+                          <span className="font-mono text-[9px] font-black text-yellow-500 bg-yellow-500/10 border border-yellow-500/30 px-2 py-0.5 rounded uppercase tracking-wider">
+                            {gameObj?.name || 'Flip 7'}
+                          </span>
+                          <span className="font-mono text-[10px] text-neutral-500">
+                            {table.createdAt ? new Date(table.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''}
+                          </span>
+                        </div>
+                        
+                        <h3 className="font-display font-black text-xl md:text-2xl text-white tracking-tight mt-2 uppercase group-hover:text-yellow-400 transition-colors">
+                          {table.name}
+                        </h3>
+                        
+                        <div className="grid grid-cols-2 gap-3 mt-3 text-xs font-mono text-neutral-400">
+                          <div className="bg-neutral-900/60 border border-neutral-800/40 p-2 rounded-xl">
+                            <p className="text-[9px] text-neutral-500 uppercase">Pontos Alvo</p>
+                            <p className="font-bold text-neutral-200 mt-0.5">{table.targetScore} pts</p>
+                          </div>
+                          <div className="bg-neutral-900/60 border border-neutral-800/40 p-2 rounded-xl">
+                            <p className="text-[9px] text-neutral-500 uppercase">Rodada</p>
+                            <p className="font-bold text-neutral-200 mt-0.5">{table.currentRound} / {table.maxRounds}</p>
+                          </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <p className="font-mono text-[9px] text-neutral-500 uppercase tracking-wider mb-1">Jogadores na Mesa:</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {table.players.map((p: any) => (
+                              <span key={p.id} className="inline-flex items-center gap-1 bg-neutral-950/80 border border-neutral-800/80 text-neutral-300 text-[10px] px-2 py-1 rounded-full">
+                                <img
+                                  src={p.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.name}`}
+                                  alt={p.name}
+                                  className="w-3.5 h-3.5 rounded-full object-cover"
+                                />
+                                <span className="max-w-[70px] truncate">{p.name}</span>
+                                <span className="font-bold text-yellow-500">({p.totalScore})</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setSelectedScoreboardTableId(table.id);
+                          setViewingTable(table);
+                        }}
+                        className="w-full mt-2 py-3 bg-neutral-800 group-hover:bg-yellow-400 text-neutral-300 group-hover:text-yellow-950 font-display font-black text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer border-b-2 group-hover:border-yellow-600 flex items-center justify-center gap-2"
+                      >
+                        <Tv className="w-4 h-4" />
+                        Visualizar Placar
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* FOOTER */}
+          <div className="w-full flex flex-col sm:flex-row justify-between items-center border-t border-neutral-800/60 pt-6 relative z-10 gap-4 mt-auto">
+            <div className="bg-[#121110] border border-neutral-800 rounded-full px-4 py-2 font-mono text-[10px] text-neutral-400 uppercase tracking-wider">
+              Total de Mesas Ativas: <span className="font-bold text-yellow-400">{openTables.length}</span>
+            </div>
+
+            <div className="flex gap-2">
+              {activeTable && activeTable.status === 'active' && (
+                <button
+                  onClick={() => {
+                    setSelectedScoreboardTableId(activeTable.id);
+                    setViewingTable(activeTable);
+                  }}
+                  className="px-5 py-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-mono text-xs uppercase tracking-wider rounded-xl border border-neutral-800 transition-all cursor-pointer"
+                >
+                  Minha Mesa
+                </button>
+              )}
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className="px-5 py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-mono text-xs uppercase rounded-xl border border-neutral-700 transition-all cursor-pointer"
+              >
+                Voltar ao Painel
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const currentTable = viewingTable || activeTable;
+    const isFlip7 = (currentTable?.game || selectedGame || 'flip7') === 'flip7';
+    const hasActiveMatch = currentTable && currentTable.status === 'active';
     
     // Sort players by totalScore descending
-    const sortedPlayers = hasActiveMatch && activeTable
-      ? [...activeTable.players].sort((a, b) => b.totalScore - a.totalScore)
+    const sortedPlayers = hasActiveMatch && currentTable
+      ? [...currentTable.players].sort((a, b) => b.totalScore - a.totalScore)
       : [];
 
     // Helper to get highest score/combo
@@ -2117,8 +2321,8 @@ export default function Home() {
       let highestScore = 0;
       let highestPlayerName = 'Nenhum';
 
-      if (hasActiveMatch && activeTable) {
-        activeTable.players.forEach((p) => {
+      if (hasActiveMatch && currentTable) {
+        currentTable.players.forEach((p) => {
           p.history.forEach((score) => {
             if (score > highestScore) {
               highestScore = score;
@@ -2160,21 +2364,21 @@ export default function Home() {
         <div className="w-full flex flex-col md:flex-row justify-between items-start md:items-center border-b border-neutral-800/60 pb-6 mb-8 relative z-10 gap-4">
           <div>
             <p className="font-mono text-xs font-black text-yellow-500 uppercase tracking-widest mb-1">
-              LIVE COMPETITION
+              PLACAR AO VIVO - {currentTable?.name.toUpperCase() || ''}
             </p>
             <h1 className="font-display font-black text-3xl md:text-5xl text-yellow-400 tracking-tighter uppercase leading-none">
-              {(GAMES.find((g) => g.id === selectedGame)?.name || 'FLIP7').toUpperCase()} - SCOREBOARD
+              {(GAMES.find((g) => g.id === (currentTable?.game || selectedGame))?.name || 'FLIP7').toUpperCase()} - PLACAR
             </h1>
           </div>
 
           <div className="flex items-center gap-6 self-stretch md:self-auto justify-between md:justify-end border-t md:border-t-0 border-neutral-800 pt-4 md:pt-0">
-            {hasActiveMatch && activeTable ? (
+            {hasActiveMatch && currentTable ? (
               <>
                 <div className="flex items-center gap-4 pr-6 border-r border-neutral-800">
                   <div className="text-right">
                     <p className="font-mono text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-0.5">ROUND</p>
                     <p className="font-display font-black text-2xl md:text-3xl text-white tracking-tight">
-                      {activeTable.currentRound.toString().padStart(2, '0')} <span className="text-neutral-600">/</span> {activeTable.maxRounds.toString().padStart(2, '0')}
+                      {currentTable.currentRound.toString().padStart(2, '0')} <span className="text-neutral-600">/</span> {currentTable.maxRounds.toString().padStart(2, '0')}
                     </p>
                   </div>
                 </div>
@@ -2183,7 +2387,7 @@ export default function Home() {
                   <div className="text-right">
                     <p className="font-mono text-[10px] font-bold text-yellow-500 uppercase tracking-wider mb-0.5">TARGET</p>
                     <p className="font-display font-black text-2xl md:text-3xl text-yellow-400 tracking-tight">
-                      {activeTable.targetScore}
+                      {currentTable.targetScore}
                     </p>
                   </div>
                 </div>
@@ -2208,18 +2412,18 @@ export default function Home() {
                   Nenhuma Mesa Ativa
                 </h3>
                 <p className="text-neutral-400 text-sm leading-relaxed max-w-sm mx-auto">
-                  Para exibir o placar em tempo real em um tablet ou tela cheia, inicie uma mesa de jogo no painel.
+                  Para exibir o placar em tempo real em um tablet ou tela cheia, inicie uma mesa de jogo no painel ou selecione outra mesa disponível.
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
                 <button
                   onClick={() => {
-                    handleQuickAddScore();
-                    setActiveTab('dashboard');
+                    setSelectedScoreboardTableId(null);
+                    setViewingTable(null);
                   }}
                   className="px-5 py-3 bg-yellow-400 hover:bg-yellow-300 text-yellow-950 font-display font-black text-xs uppercase rounded-xl border-b-4 border-yellow-600 transition-all cursor-pointer"
                 >
-                  Mesa Rápida
+                  Selecionar Outra Mesa
                 </button>
                 <button
                   onClick={() => setActiveTab('dashboard')}
@@ -2236,10 +2440,10 @@ export default function Home() {
                 const isLeader = idx === 0;
                 
                 // Active turn indicators
-                const isItsTurn = activeTable && activeTable.activePlayerIndex === activeTable.players.findIndex(p => p.id === player.id);
+                const isItsTurn = currentTable && currentTable.activePlayerIndex === currentTable.players.findIndex(p => p.id === player.id);
                 
                 // Calculate progress to target
-                const targetVal = activeTable?.targetScore || 100;
+                const targetVal = currentTable?.targetScore || 100;
                 const progressPercent = Math.min(100, Math.round((player.totalScore / targetVal) * 100));
 
                 // Color themes for progress bars matching the image
@@ -2360,14 +2564,25 @@ export default function Home() {
               <span className="text-yellow-400">⚡</span> HIGHEST COMBO: <span className="font-bold text-yellow-400">{getHighestComboVal()}</span>
             </div>
             
-            {hasActiveMatch && activeTable && (
+            {hasActiveMatch && currentTable && (
               <div className="bg-[#121110] border border-neutral-800 rounded-full px-4 py-2 font-mono text-[10px] text-neutral-300 flex items-center gap-1.5 uppercase tracking-wider">
-                <span>👥</span> {activeTable.players.length} PLAYERS REMAINING
+                <span>👥</span> {currentTable.players.length} PLAYERS REMAINING
               </div>
             )}
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setSelectedScoreboardTableId(null);
+                setViewingTable(null);
+              }}
+              className="px-5 py-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-mono text-xs uppercase tracking-wider rounded-xl border border-neutral-800 transition-all cursor-pointer flex items-center gap-2"
+            >
+              <Tv className="w-4 h-4" />
+              <span>Trocar Mesa</span>
+            </button>
+
             <button
               onClick={() => setActiveTab('dashboard')}
               className="px-5 py-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-mono text-xs uppercase tracking-wider rounded-xl border border-neutral-800 transition-all cursor-pointer flex items-center gap-2"
@@ -2376,18 +2591,16 @@ export default function Home() {
               <span>Sair Tela Cheia</span>
             </button>
 
-            <button
-              onClick={() => {
-                if (hasActiveMatch && activeTable) {
+            {activeTable && activeTable.status === 'active' && (
+              <button
+                onClick={() => {
                   setActiveTab('live');
-                } else {
-                  setActiveTab('dashboard');
-                }
-              }}
-              className="px-6 py-3.5 bg-yellow-400 hover:bg-yellow-300 text-yellow-950 font-display font-black text-xs uppercase tracking-wider rounded-xl border-b-4 border-yellow-600 transition-all cursor-pointer flex items-center gap-2 shadow-lg animate-pulse"
-            >
-              <span>{hasActiveMatch ? 'Gerenciar Partida ⚔️' : 'Ir para o Painel'}</span>
-            </button>
+                }}
+                className="px-6 py-3.5 bg-yellow-400 hover:bg-yellow-300 text-yellow-950 font-display font-black text-xs uppercase tracking-wider rounded-xl border-b-4 border-yellow-600 transition-all cursor-pointer flex items-center gap-2 shadow-lg animate-pulse"
+              >
+                <span>Gerenciar Partida ⚔️</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
