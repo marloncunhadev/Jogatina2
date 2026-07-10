@@ -681,7 +681,7 @@ export default function Home() {
       fetch('/api/players')
         .then((res) => res.json())
         .then((dbPlayers) => {
-          if (Array.isArray(dbPlayers) && dbPlayers.length > 0) {
+          if (Array.isArray(dbPlayers)) {
             setPlayers(dbPlayers);
             localStorage.setItem('flip7_players', JSON.stringify(dbPlayers));
             setSelectedPlayerIds((prev) => {
@@ -694,6 +694,20 @@ export default function Home() {
           }
         })
         .catch((err) => console.error("Error loading players from database:", err));
+
+      // Fetch active table state from database API
+      fetch('/api/active-table')
+        .then((res) => res.json())
+        .then((dbActiveTable) => {
+          if (dbActiveTable && dbActiveTable.status === 'active') {
+            setActiveTable(dbActiveTable);
+            localStorage.setItem('flip7_active_table', JSON.stringify(dbActiveTable));
+          } else if (dbActiveTable && dbActiveTable.status === 'inactive') {
+            setActiveTable(null);
+            localStorage.removeItem('flip7_active_table');
+          }
+        })
+        .catch((err) => console.error("Error loading active table from database:", err));
 
       const storedPlayers = localStorage.getItem('flip7_players');
       const storedHistory = localStorage.getItem('flip7_history');
@@ -902,6 +916,108 @@ export default function Home() {
       localStorage.removeItem('flip7_active_table');
     }
   };
+
+  // Sync activeTable state to the database via API
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Create a sync key based on everything except gameTimeSeconds to avoid redundant calls
+    const syncKey = activeTable ? JSON.stringify({
+      id: activeTable.id,
+      status: activeTable.status,
+      currentRound: activeTable.currentRound,
+      activePlayerIndex: activeTable.activePlayerIndex,
+      players: activeTable.players,
+      targetScore: activeTable.targetScore,
+      game: activeTable.game
+    }) : 'null';
+
+    // Ref to avoid duplicate or redundant posts
+    if ((window as any)._lastSyncKey === syncKey) return;
+    (window as any)._lastSyncKey = syncKey;
+
+    if (activeTable) {
+      fetch('/api/active-table', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(activeTable),
+      }).catch((err) => console.error("Error syncing active table:", err));
+    } else {
+      fetch('/api/active-table', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'inactive' }),
+      }).catch((err) => console.error("Error clearing active table:", err));
+    }
+  }, [activeTable]);
+
+  // Poll active table state from server when on fullscreen scoreboard (high frequency)
+  useEffect(() => {
+    if (activeTab !== 'fullscreen_scoreboard') return;
+
+    let active = true;
+    const pollActiveTable = async () => {
+      try {
+        const res = await fetch('/api/active-table');
+        if (!active) return;
+        if (res.ok) {
+          const data = await res.json();
+          const tableData = data.status === 'inactive' ? null : data;
+          
+          setActiveTable((current) => {
+            if (JSON.stringify(current) !== JSON.stringify(tableData)) {
+              return tableData;
+            }
+            return current;
+          });
+        }
+      } catch (err) {
+        console.error("Error polling active table:", err);
+      }
+    };
+
+    pollActiveTable();
+    const interval = setInterval(pollActiveTable, 1200);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [activeTab]);
+
+  // Poll active table state on other views (lower frequency) to keep dashboard sync
+  useEffect(() => {
+    if (activeTab === 'live' || activeTab === 'fullscreen_scoreboard') return;
+
+    let active = true;
+    const pollActiveTable = async () => {
+      try {
+        const res = await fetch('/api/active-table');
+        if (!active) return;
+        if (res.ok) {
+          const data = await res.json();
+          const tableData = data.status === 'inactive' ? null : data;
+          
+          setActiveTable((current) => {
+            if (JSON.stringify(current) !== JSON.stringify(tableData)) {
+              return tableData;
+            }
+            return current;
+          });
+        }
+      } catch (err) {
+        console.error("Error polling active table:", err);
+      }
+    };
+
+    pollActiveTable();
+    const interval = setInterval(pollActiveTable, 5000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [activeTab]);
 
   const handleSelectGame = (gameId: string | null) => {
     setSelectedGame(gameId);
