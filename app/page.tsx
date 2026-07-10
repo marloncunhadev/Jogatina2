@@ -1010,7 +1010,7 @@ export default function Home() {
       try {
         const timestamp = Date.now();
         if (selectedScoreboardTableId) {
-          // Polling for the selected table every 5 seconds
+          // Polling for the selected table
           const res = await fetch(`/api/active-table?id=${selectedScoreboardTableId}&_t=${timestamp}`, {
             cache: 'no-store',
             headers: {
@@ -1031,7 +1031,7 @@ export default function Home() {
             });
           }
         } else {
-          // Polling the list of open tables every 5 seconds
+          // Polling the list of open tables
           const res = await fetch(`/api/active-table?list=true&_t=${timestamp}`, {
             cache: 'no-store',
             headers: {
@@ -1058,11 +1058,27 @@ export default function Home() {
     };
 
     pollScoreboardData();
-    const interval = setInterval(pollScoreboardData, 5000);
+    const interval = setInterval(pollScoreboardData, 1500); // Polling every 1.5 seconds for fast cross-device updates
+
+    // Instant local sync via Storage events (for same-device multi-tab setups)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'flip7_active_table' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (selectedScoreboardTableId && parsed.id === selectedScoreboardTableId) {
+            setViewingTable(parsed);
+          }
+        } catch (err) {
+          console.error("Error parsing storage change:", err);
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
 
     return () => {
       active = false;
       clearInterval(interval);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, [activeTab, selectedScoreboardTableId]);
 
