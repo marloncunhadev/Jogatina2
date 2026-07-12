@@ -1,0 +1,189 @@
+{
+  "tables": {
+    "torneio-sexta": {
+      "id": "torneio-sexta",
+      "name": "Torneio de Sexta",
+      "targetScore": 150,
+      "maxRounds": 7,
+      "currentRound": 3,
+      "status": "inactive",
+      "activePlayerIndex": 0,
+      "createdAt": "2026-07-10T20:24:23.576Z",
+      "gameTimeSeconds": 896,
+      "players": [
+        {
+          "id": "sora",
+          "name": "Sora",
+          "avatar": "https://lh3.googleusercontent.com/aida-public/AB6AXuD6pa0w5xpTZvrK_3uvM1dVoxkye3hsEeSPbHjKscHfobDyn_1OPGmpPEpFuqLlB1cupPScEFS6Klv4UvmsJ1gksOkuPot9sgnCqIWZvpnONcvV3pR2z1QDu6c3jWxb4Wbu0Iet1DMhuXVvuNEpg2XHsQoW_vTEImQyOlhqfpOn-w70yfNBOmNe0iLweBemHQC4jfL6k2hz9VmumeZLYBnjOfEO6tv8s6yNrSOs_NOiDqtw7R7rjDehSw",
+          "score": 12,
+          "isBusted": false,
+          "history": [
+            60,
+            70
+          ],
+          "totalScore": 142
+        },
+        {
+          "id": "leo",
+          "name": "Leo",
+          "avatar": "https://lh3.googleusercontent.com/aida-public/AB6AXuALr3M0R7WX9w0I18Zt_lPiE7GpggmvfxQ4kDxLM09MMVQebI_bnLDzBzoRcb7kymV5P8DcZ5S4spm3JetUQg9zDbueAwDSuSG8ww-SMZK2GltDWwt4kQqx-ipU0GGd4FrXnGklXKgOSQn9c8qj4Kwu8tEdVrLCcIxsnA3lfT4GKDnCSa3OB-7e5fUhCLwPGQ_hBQ4C6wouoVzRmQuy_8ALQ_FThrOqROIeLqQE2L72qsfidyGfTCr2FQ",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            58,
+            60
+          ],
+          "totalScore": 118
+        },
+        {
+          "id": "maya",
+          "name": "Mei",
+          "avatar": "https://lh3.googleusercontent.com/aida-public/AB6AXuB8m_2_6IIJy1TTbhHrcHIUeG00aHs0g_HLzESHhHL3ei1am90AypSYcj3ToPlur5WtCNNffsj1bUJcDabDqUfSYBX8uJkkv_-hIiW5Dy0wMLJit3_1kb-ofO-r7ojEDuAxYLdACV_MFU-gIKktcGLdNnzTAiYlYM26MkzVskBt2-CAAirQnRHTb_mrTA3mn8Obs6jWFMa8DowHoynCNwrefXLVTsvBQINNh_G0zZ-_vNQ4rauhsUUp7w",
+          "score": 0,
+          "isBusted": true,
+          "history": [
+            50,
+            60
+          ],
+          "totalScore": 110
+        },
+        {
+          "id": "alex",
+          "name": "Jax",
+          "avatar": "https://lh3.googleusercontent.com/aida-public/AB6AXuCaZ4tNKiAoYP0kwHUknsEVv98mctmG36cLK2fuDll4zckwqTl0dMrBrzoY_-tjG9Vjc7sPNcSS8J7wsgjTPf3yi5ONBkC8Pe43JDdIW5RUkNiTDmrGm49KnJviA4gINsn5xLaMlTpIP0KXYbq2OEdWMZPlKkfvgrIm72fngAqWQCCMpCgSeNG-G5uleX126_Yg_8IyFxdIAT4Tqdl7r--PhtcTF6nKVis-XT-qQgeE1jgGMgGpLg5XAg",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            44,
+            50
+          ],
+          "totalScore": 94
+        }
+      ]
+    },
+    "table_1783710936091": {
+      "id": "table_1783710936091",
+      "name": "Jogatina1",
+      "targetScore": 200,
+      "maxRounds": 7,
+      "currentRound": 4,
+      "status": "inactive",
+      "players": [
+        {
+          "id": "custom_1783710927211",
+          "name": "Julianna",
+          "avatar": "https://lh3.googleusercontent.com/aida-public/AB6AXuAE1nvKimAgCLNKwsd8Wuwzk_MMJMg785Bg9AeN4pn9IQijUFfrA-Vgj-OFmXEwpLXxJ4R9NPSpud9FA538t7N3Z5d8U72Ka_edn8w_zuxMhoRcjTGaO_ECXH9XEnzjIwUIOiRY0AAgb-J7T1-5E0cwRA6aeK-4ZHPvuywC_k8OS5oE_Jft-CBnQfed9QruFgpiY8nRLFB8BR2Wg_OLIBqrRl1Vy3P7vHeN-VgsXEQ_u5TnLcs8fcI18Q",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            27,
+            36,
+            0,
+            4
+          ],
+          "totalScore": 67
+        },
+        {
+          "id": "custom_1783710920570",
+          "name": "Marlon",
+          "avatar": "https://lh3.googleusercontent.com/aida-public/AB6AXuAE1nvKimAgCLNKwsd8Wuwzk_MMJMg785Bg9AeN4pn9IQijUFfrA-Vgj-OFmXEwpLXxJ4R9NPSpud9FA538t7N3Z5d8U72Ka_edn8w_zuxMhoRcjTGaO_ECXH9XEnzjIwUIOiRY0AAgb-J7T1-5E0cwRA6aeK-4ZHPvuywC_k8OS5oE_Jft-CBnQfed9QruFgpiY8nRLFB8BR2Wg_OLIBqrRl1Vy3P7vHeN-VgsXEQ_u5TnLcs8fcI18Q",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            11,
+            11,
+            149,
+            33
+          ],
+          "totalScore": 204
+        }
+      ],
+      "activePlayerIndex": 1,
+      "createdAt": "2026-07-10T19:15:36.091Z",
+      "gameTimeSeconds": 113,
+      "game": "flip7"
+    },
+    "table_1783711097783": {
+      "id": "table_1783711097783",
+      "name": "Torneio de sexta-feira",
+      "targetScore": 200,
+      "maxRounds": 7,
+      "currentRound": 1,
+      "status": "inactive",
+      "players": [
+        {
+          "id": "custom_1783711088347",
+          "name": "Juan",
+          "avatar": "https://lh3.googleusercontent.com/aida-public/AB6AXuB5_tyXRXZi25g1bOE8uC8B1qm43fmOkiW9Nn7lgmeZJRN8i4H6x_A8SZMTQigTEVoBDq1zvQjV2pimicSEBZjI5L7mNYtam42j6ejd-Uwp71lBzPUljpg7bN35aaD3KA-JXHi0td-oyprb09spib6m72VUFGlKpeNOPMzYh0QB7DXLcdip9WtxT0hZR5rXJ7PxJl7GoZuEqHJFocKRTVZQvTBohD2aQFWu93ACFGmDe5rwkGpG-E1vuQ",
+          "score": 0,
+          "isBusted": false,
+          "history": [],
+          "totalScore": 0
+        },
+        {
+          "id": "custom_1783710927211",
+          "name": "Julianna",
+          "avatar": "https://lh3.googleusercontent.com/aida-public/AB6AXuAE1nvKimAgCLNKwsd8Wuwzk_MMJMg785Bg9AeN4pn9IQijUFfrA-Vgj-OFmXEwpLXxJ4R9NPSpud9FA538t7N3Z5d8U72Ka_edn8w_zuxMhoRcjTGaO_ECXH9XEnzjIwUIOiRY0AAgb-J7T1-5E0cwRA6aeK-4ZHPvuywC_k8OS5oE_Jft-CBnQfed9QruFgpiY8nRLFB8BR2Wg_OLIBqrRl1Vy3P7vHeN-VgsXEQ_u5TnLcs8fcI18Q",
+          "score": 0,
+          "isBusted": false,
+          "history": [],
+          "totalScore": 0
+        },
+        {
+          "id": "custom_1783710920570",
+          "name": "Marlon",
+          "avatar": "https://lh3.googleusercontent.com/aida-public/AB6AXuAE1nvKimAgCLNKwsd8Wuwzk_MMJMg785Bg9AeN4pn9IQijUFfrA-Vgj-OFmXEwpLXxJ4R9NPSpud9FA538t7N3Z5d8U72Ka_edn8w_zuxMhoRcjTGaO_ECXH9XEnzjIwUIOiRY0AAgb-J7T1-5E0cwRA6aeK-4ZHPvuywC_k8OS5oE_Jft-CBnQfed9QruFgpiY8nRLFB8BR2Wg_OLIBqrRl1Vy3P7vHeN-VgsXEQ_u5TnLcs8fcI18Q",
+          "score": 0,
+          "isBusted": false,
+          "history": [],
+          "totalScore": 0
+        }
+      ],
+      "activePlayerIndex": 0,
+      "createdAt": "2026-07-10T19:18:17.783Z",
+      "gameTimeSeconds": 0,
+      "game": "flip7"
+    },
+    "table_1783712923797": {
+      "id": "table_1783712923797",
+      "name": "Jogatina1",
+      "targetScore": 200,
+      "maxRounds": 7,
+      "currentRound": 1,
+      "status": "inactive",
+      "players": [
+        {
+          "id": "custom_1783711088347",
+          "name": "Juan",
+          "avatar": "sprite:0",
+          "score": 0,
+          "isBusted": false,
+          "history": [],
+          "totalScore": 0
+        },
+        {
+          "id": "custom_1783710927211",
+          "name": "Julianna",
+          "avatar": "sprite:7",
+          "score": 0,
+          "isBusted": false,
+          "history": [],
+          "totalScore": 0
+        },
+        {
+          "id": "custom_1783710920570",
+          "name": "Marlon",
+          "avatar": "sprite:2",
+          "score": 0,
+          "isBusted": false,
+          "history": [],
+          "totalScore": 0
+        }
+      ],
+      "activePlayerIndex": 0,
+      "createdAt": "2026-07-10T19:48:43.797Z",
+      "gameTimeSeconds": 0,
+      "game": "flip7"
+    }
+  }
+}
