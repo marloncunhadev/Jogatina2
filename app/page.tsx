@@ -32,7 +32,9 @@ import {
   Sparkles,
   Tv,
   Minimize2,
-  Award
+  Award,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 import { supabase } from '../lib/supabase';
@@ -112,15 +114,48 @@ interface SimulatedTable {
 const INITIAL_PLAYERS: Player[] = [];
 
 const PRESET_AVATARS: string[] = [
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuD6pa0w5xpTZvrK_3uvM1dVoxkye3hsEeSPbHjKscHfobDyn_1OPGmpPEpFuqLlB1cupPScEFS6Klv4UvmsJ1gksOkuPot9sgnCqIWZvpnONcvV3pR2z1QDu6c3jWxb4Wbu0Iet1DMhuXVvuNEpg2XHsQoW_vTEImQyOlhqfpOn-w70yfNBOmNe0iLweBemHQC4jfL6k2hz9VmumeZLYBnjOfEO6tv8s6yNrSOs_NOiDqtw7R7rjDehSw',
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuALr3M0R7WX9w0I18Zt_lPiE7GpggmvfxQ4kDxLM09MMVQebI_bnLDzBzoRcb7kymV5P8DcZ5S4spm3JetUQg9zDbueAwDSuSG8ww-SMZK2GltDWwt4kQqx-ipU0GGd4FrXnGklXKgOSQn9c8qj4Kwu8tEdVrLCcIxsnA3lfT4GKDnCSa3OB-7e5fUhCLwPGQ_hBQ4C6wouoVzRmQuy_8ALQ_FThrOqROIeLqQE2L72qsfidyGfTCr2FQ',
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuB8m_2_6IIJy1TTbhHrcHIUeG00aHs0g_HLzESHhHL3ei1am90AypSYcj3ToPlur5WtCNNffsj1bUJcDabDqUfSYBX8uJkkv_-hIiW5Dy0wMLJit3_1kb-ofO-r7ojEDuAxYLdACV_MFU-gIKktcGLdNnzTAiYlYM26MkzVskBt2-CAAirQnRHTb_mrTA3mn8Obs6jWFMa8DowHoynCNwrefXLVTsvBQINNh_G0zZ-_vNQ4rauhsUUp7w',
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuCaZ4tNKiAoYP0kwHUknsEVv98mctmG36cLK2fuDll4zckwqTl0dMrBrzoY_-tjG9Vjc7sPNcSS8J7wsgjTPf3yi5ONBkC8Pe43JDdIW5RUkNiTDmrGm49KnJviA4gINsn5xLaMlTpIP0KXYbq2OEdWMZPlKkfvgrIm72fngAqWQCCMpCgSeNG-G5uleX126_Yg_8IyFxdIAT4Tqdl7r--PhtcTF6nKVis-XT-qQgeE1jgGMgGpLg5XAg',
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuCXB6xyduz4RfBXW754t5m5r_czyPI_ZHyMqv-TiVa6EXvtD5vVybQYg0J4vBxntoiD6IwOHETzINFQazZdS3OeZg5ZtXu5d7za2NskKyIGosAnrDkiX0ERd7tm514euMNe1EwiPcHD6F8Tzkpoht1YwdDbXpUXKJkekOKu0DtivzQcpebX3t1veA76d-29OzCnkPD6fKjYTCC4zZrme4ETYlJXP1w6PeqU9XgiTaSNgDtf1hDfvVT0Yw',
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuAE1nvKimAgCLNKwsd8Wuwzk_MMJMg785Bg9AeN4pn9IQijUFfrA-Vgj-OFmXEwpLXxJ4R9NPSpud9FA538t7N3Z5d8U72Ka_edn8w_zuxMhoRcjTGaO_ECXH9XEnzjIwUIOiRY0AAgb-J7T1-5E0cwRA6aeK-4ZHPvuywC_k8OS5oE_Jft-CBnQfed9QruFgpiY8nRLFB8BR2Wg_OLIBqrRl1Vy3P7vHeN-VgsXEQ_u5TnLcs8fcI18Q',
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuB5_tyXRXZi25g1bOE8uC8B1qm43fmOkiW9Nn7lgmeZJRN8i4H6x_A8SZMTQigTEVoBDq1zvQjV2pimicSEBZjI5L7mNYtam42j6ejd-Uwp71lBzPUljpg7bN35aaD3KA-JXHi0td-oyprb09spib6m72VUFGlKpeNOPMzYh0QB7DXLcdip9WtxT0hZR5rXJ7PxJl7GoZuEqHJFocKRTVZQvTBohD2aQFWu93ACFGmDe5rwkGpG-E1vuQ',
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuCDsF2Y-K_zyerOuJURBBAeBtCLRG5RE8wnwbIOfUVY-o-7u7O1HLaQhxrOPtrvJWhqQa3yFTvuqkbtPfA6srzxZwKZcYFlBLXyGz-lKY0qY1RWEKNn_B25mrpOMZSo4YXfgoRV9ypWNI99p1GbbEPW-_VwQYj6U5gYx_aG_hbjUr0wYFSVANrM0EASOAxd9J2ZcqpVaYCS7MmtoG1Mtpvo9kZdAvBSm4POf3Fv1blmiEmAQYe3luOwOQ'
+  'sprite:0',
+  'sprite:1',
+  'sprite:2',
+  'sprite:3',
+  'sprite:4',
+  'sprite:5',
+  'sprite:6',
+  'sprite:7'
 ];
+
+const PlayerAvatar = ({ src, alt, className = "" }: { src: string, alt: string, className?: string }) => {
+  const isSprite = src?.startsWith('sprite:');
+  if (isSprite) {
+    const spriteIndex = parseInt(src.split(':')[1]) || 0;
+    const row = Math.floor(spriteIndex / 4);
+    const col = spriteIndex % 4;
+    const xPos = col * (100 / 3);
+    const yPos = row * 100;
+    
+    return (
+      <div 
+        className={`${className} bg-neutral-900`}
+        style={{
+          backgroundImage: `url('/avatars.jpg')`,
+          backgroundSize: '400% 200%',
+          backgroundPosition: `${xPos}% ${yPos}%`,
+          backgroundRepeat: 'no-repeat'
+        }}
+        title={alt}
+      />
+    );
+  }
+  
+  return (
+    <img 
+      src={src || `https://api.dicebear.com/7.x/bottts/svg?seed=${alt}`}
+      alt={alt}
+      className={`${className} object-cover`}
+      referrerPolicy="no-referrer"
+    />
+  );
+};
 
 interface GameConfig {
   id: string;
@@ -131,7 +166,14 @@ interface GameConfig {
   badge: string;
   defaultTarget: number;
   defaultMaxRounds: number;
+  defaultMaxPlayers: number;
   imageUrl: string;
+}
+
+interface CustomGameSettings {
+  targetScore: number;
+  maxRounds: number;
+  maxPlayers: number;
 }
 
 const GameIllustration = ({ gameId }: { gameId: string }) => {
@@ -427,6 +469,7 @@ const GAMES: GameConfig[] = [
     badge: 'F7',
     defaultTarget: 200,
     defaultMaxRounds: 7,
+    defaultMaxPlayers: 8,
     imageUrl: 'https://picsum.photos/seed/flip7cards/200/200',
   },
   {
@@ -438,6 +481,7 @@ const GAMES: GameConfig[] = [
     badge: 'UNO',
     defaultTarget: 500,
     defaultMaxRounds: 10,
+    defaultMaxPlayers: 8,
     imageUrl: 'https://picsum.photos/seed/unocards/200/200',
   },
   {
@@ -449,6 +493,7 @@ const GAMES: GameConfig[] = [
     badge: 'FLIP',
     defaultTarget: 500,
     defaultMaxRounds: 10,
+    defaultMaxPlayers: 8,
     imageUrl: 'https://picsum.photos/seed/unoflip/200/200',
   },
   {
@@ -460,6 +505,7 @@ const GAMES: GameConfig[] = [
     badge: 'NO MERCY',
     defaultTarget: 1000,
     defaultMaxRounds: 15,
+    defaultMaxPlayers: 8,
     imageUrl: 'https://picsum.photos/seed/unonomercy/200/200',
   },
   {
@@ -471,6 +517,7 @@ const GAMES: GameConfig[] = [
     badge: 'CATAN',
     defaultTarget: 10,
     defaultMaxRounds: 1,
+    defaultMaxPlayers: 8,
     imageUrl: 'https://picsum.photos/seed/catanboard/200/200',
   },
   {
@@ -482,6 +529,7 @@ const GAMES: GameConfig[] = [
     badge: 'DADOS',
     defaultTarget: 350,
     defaultMaxRounds: 13,
+    defaultMaxPlayers: 8,
     imageUrl: 'https://picsum.photos/seed/dicerolling/200/200',
   }
 ];
@@ -600,6 +648,25 @@ const DEFAULT_ACTIVE_TABLE: Table = {
 export default function Home() {
   // Navigation states: 'dashboard' | 'players' | 'new_game' | 'live'
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [expandedSettingsGameId, setExpandedSettingsGameId] = useState<string | null>(null);
+
+  const [customGameSettings, setCustomGameSettings] = useState<Record<string, CustomGameSettings>>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('jogatina_custom_game_settings');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error("Failed to parse custom game settings", e);
+        }
+      }
+    }
+    return {};
+  });
+
+  useEffect(() => {
+    localStorage.setItem('jogatina_custom_game_settings', JSON.stringify(customGameSettings));
+  }, [customGameSettings]);
 
   // Selected Game states: 'flip7' | 'uno' | 'uno_flip' | 'uno_no_mercy' | 'catan' | 'general' | null
   const [selectedGame, setSelectedGame] = useState<string | null>(() => {
@@ -1091,8 +1158,8 @@ export default function Home() {
       localStorage.setItem('flip7_selected_game', gameId);
       const gameConfig = GAMES.find((g) => g.id === gameId);
       if (gameConfig) {
-        setNewTargetScore(gameConfig.defaultTarget);
-        setNewMaxRounds(gameConfig.defaultMaxRounds);
+        setNewTargetScore(customGameSettings[gameId]?.targetScore ?? gameConfig.defaultTarget);
+        setNewMaxRounds(customGameSettings[gameId]?.maxRounds ?? gameConfig.defaultMaxRounds);
         setNewTableName(`Torneio de ${gameConfig.name}`);
       }
     } else {
@@ -1374,11 +1441,17 @@ export default function Home() {
 
   // Toggle player selection for a new game
   const togglePlayerSelection = (playerId: string) => {
-    setSelectedPlayerIds((prev) =>
-      prev.includes(playerId)
-        ? prev.filter((id) => id !== playerId)
-        : [...prev, playerId]
-    );
+    const gameConfig = GAMES.find(g => g.id === selectedGame);
+    const maxPlayers = gameConfig ? (customGameSettings[gameConfig.id]?.maxPlayers ?? gameConfig.defaultMaxPlayers) : 8;
+
+    setSelectedPlayerIds((prev) => {
+      if (prev.includes(playerId)) {
+        return prev.filter((id) => id !== playerId);
+      } else {
+        if (prev.length >= maxPlayers) return prev;
+        return [...prev, playerId];
+      }
+    });
   };
 
   // Initialize and start a custom game table
@@ -1493,7 +1566,7 @@ export default function Home() {
 
       setActiveTable((prevTable) => {
         if (!prevTable) return null;
-        const updated = { ...prevTable };
+        const updated = { ...prevTable, players: prevTable.players.map(p => ({ ...p, history: [...p.history] })) };
         const activePlayer = updated.players[prevIndex];
 
         activePlayer.score = newScore;
@@ -1533,7 +1606,7 @@ export default function Home() {
 
       setActiveTable((prevTable) => {
         if (!prevTable) return null;
-        const updated = { ...prevTable };
+        const updated = { ...prevTable, players: prevTable.players.map(p => ({ ...p, history: [...p.history] })) };
         const activePlayer = updated.players[prevIndex];
 
         activePlayer.score = newScore;
@@ -1554,7 +1627,7 @@ export default function Home() {
       // Just update current score
       setActiveTable((prevTable) => {
         if (!prevTable) return null;
-        const updated = { ...prevTable };
+        const updated = { ...prevTable, players: prevTable.players.map(p => ({ ...p, history: [...p.history] })) };
         const activePlayer = updated.players[prevIndex];
 
         activePlayer.score = newScore;
@@ -1577,7 +1650,7 @@ export default function Home() {
 
     setActiveTable((prevTable) => {
       if (!prevTable) return null;
-      const updated = { ...prevTable };
+      const updated = { ...prevTable, players: prevTable.players.map(p => ({ ...p, history: [...p.history] })) };
       const activePlayer = updated.players[updated.activePlayerIndex];
 
       activePlayer.score = newScore;
@@ -1595,7 +1668,7 @@ export default function Home() {
 
     setActiveTable((prevTable) => {
       if (!prevTable) return null;
-      const updated = { ...prevTable };
+      const updated = { ...prevTable, players: prevTable.players.map(p => ({ ...p, history: [...p.history] })) };
       const activePlayer = updated.players[updated.activePlayerIndex];
 
       activePlayer.score = 0;
@@ -1613,7 +1686,7 @@ export default function Home() {
     isLocalChangeRef.current = true;
     setActiveTable((prevTable) => {
       if (!prevTable) return null;
-      const updated = { ...prevTable };
+      const updated = { ...prevTable, players: prevTable.players.map(p => ({ ...p, history: [...p.history] })) };
       const player = updated.players[updated.activePlayerIndex];
 
       if (player.isBusted) return prevTable;
@@ -1623,6 +1696,20 @@ export default function Home() {
       // Also updates temporary visually total
       player.totalScore = (player.history.reduce((a, b) => a + b, 0)) + player.score;
 
+      localStorage.setItem('flip7_active_table', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handlePlayerSelect = (index: number) => {
+    if (!activeTable) return;
+    if (activeTable.status === 'completed') return;
+    if (activeTable.activePlayerIndex === index) return;
+    
+    isLocalChangeRef.current = true;
+    setActiveTable((prevTable) => {
+      if (!prevTable) return null;
+      const updated = { ...prevTable, activePlayerIndex: index };
       localStorage.setItem('flip7_active_table', JSON.stringify(updated));
       return updated;
     });
@@ -1646,7 +1733,7 @@ export default function Home() {
     isLocalChangeRef.current = true;
     setActiveTable((prevTable) => {
       if (!prevTable) return null;
-      const updated = { ...prevTable };
+      const updated = { ...prevTable, players: prevTable.players.map(p => ({ ...p, history: [...p.history] })) };
       const activePlayer = updated.players[prevIndex];
 
       activePlayer.isBusted = true;
@@ -1683,7 +1770,7 @@ export default function Home() {
     isLocalChangeRef.current = true;
     setActiveTable((prevTable) => {
       if (!prevTable) return null;
-      const updated = { ...prevTable };
+      const updated = { ...prevTable, players: prevTable.players.map(p => ({ ...p, history: [...p.history] })) };
       const activePlayer = updated.players[prevIndex];
 
       activePlayer.score += bonus;
@@ -1723,7 +1810,7 @@ export default function Home() {
     isLocalChangeRef.current = true;
     setActiveTable((prevTable) => {
       if (!prevTable) return null;
-      const updated = { ...prevTable };
+      const updated = { ...prevTable, players: prevTable.players.map(p => ({ ...p, history: [...p.history] })) };
       const activePlayer = updated.players[prevIndex];
 
       // Bank accumulated score
@@ -1767,6 +1854,9 @@ export default function Home() {
 
       // Reset round states (isBusted = false) for all active players
       updated.players.forEach((p) => {
+        if (p.history.length < updated.currentRound) {
+          p.history.push(0);
+        }
         p.isBusted = false;
         p.score = 0;
       });
@@ -1918,8 +2008,8 @@ export default function Home() {
     } else {
       const gameConfig = GAMES.find((g) => g.id === selectedGame);
       setNewTableName('Mesa Rápida de ' + (gameConfig ? gameConfig.name : 'FLIP7'));
-      setNewTargetScore(gameConfig ? gameConfig.defaultTarget : 100);
-      setNewMaxRounds(gameConfig ? gameConfig.defaultMaxRounds : 7);
+      setNewTargetScore(gameConfig ? (customGameSettings[gameConfig.id]?.targetScore ?? gameConfig.defaultTarget) : 100);
+      setNewMaxRounds(gameConfig ? (customGameSettings[gameConfig.id]?.maxRounds ?? gameConfig.defaultMaxRounds) : 7);
       setActiveTab('new_game');
     }
   };
@@ -2276,10 +2366,10 @@ export default function Home() {
                           <div className="flex flex-wrap gap-1.5">
                             {table.players.map((p: any) => (
                               <span key={p.id} className="inline-flex items-center gap-1 bg-neutral-950/80 border border-neutral-800/80 text-neutral-300 text-[10px] px-2 py-1 rounded-full">
-                                <img
-                                  src={p.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.name}`}
+                                <PlayerAvatar
+                                  src={p.avatar}
                                   alt={p.name}
-                                  className="w-3.5 h-3.5 rounded-full object-cover"
+                                  className="w-3.5 h-3.5 rounded-full"
                                 />
                                 <span className="max-w-[70px] truncate">{p.name}</span>
                                 <span className="font-bold text-yellow-500">({p.totalScore})</span>
@@ -2382,6 +2472,14 @@ export default function Home() {
 
       return `${highestScore} (${highestPlayerName.toUpperCase()})`;
     };
+
+    const isFlip7Scoreboard = (currentTable?.game || selectedGame || 'flip7') === 'flip7';
+    const maxHistoryLength = currentTable ? Math.max(...currentTable.players.map(p => p.history.length), 0) : 0;
+    const maxScoresPerRound: number[] = [];
+    for (let i = 0; i < maxHistoryLength; i++) {
+      const scoresInRound = currentTable ? currentTable.players.map(p => p.history[i] || 0) : [];
+      maxScoresPerRound.push(Math.max(0, ...scoresInRound));
+    }
 
     return (
       <div className="min-h-screen text-white bg-[#0a0908] font-sans flex flex-col justify-between p-6 md:p-10 relative overflow-hidden select-none">
@@ -2501,7 +2599,7 @@ export default function Home() {
                     {/* LEADER BADGE */}
                     {isLeader && (
                       <div className="absolute top-0 right-10 -translate-y-1/2 bg-yellow-400 text-yellow-950 text-[9px] font-mono font-black px-2.5 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-1 border border-yellow-500 shadow-md">
-                        <Award className="w-3 h-3 fill-yellow-950 text-yellow-950" /> LEADER
+                        LIDER
                       </div>
                     )}
 
@@ -2518,11 +2616,10 @@ export default function Home() {
                         <div className={`w-14 h-14 md:w-16 md:h-16 rounded-full overflow-hidden border-2 flex items-center justify-center p-0.5 bg-neutral-900 ${
                           isLeader ? 'border-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.2)]' : isItsTurn ? 'border-emerald-500' : 'border-neutral-700'
                         }`}>
-                          <img
-                            src={player.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${player.name}`}
+                          <PlayerAvatar
+                            src={player.avatar}
                             alt={player.name}
-                            className="w-full h-full rounded-full object-cover"
-                            referrerPolicy="no-referrer"
+                            className="w-full h-full rounded-full"
                           />
                         </div>
                         <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-neutral-900 border border-neutral-700 flex items-center justify-center font-mono font-black text-[10px] text-neutral-300">
@@ -2541,36 +2638,72 @@ export default function Home() {
                     </div>
 
                     {/* Center Column: Progress bar with Busted Overlay */}
-                    <div className="hidden sm:flex flex-col flex-grow mx-8 max-w-xl md:max-w-3xl relative">
-                      {/* Label & percent */}
-                      <div className="flex justify-between items-center mb-1.5">
-                        <span className="font-mono text-[9px] font-bold text-neutral-400 uppercase tracking-wider">
-                          PROGRESS TO TARGET
-                        </span>
-                        <span className={`font-mono text-[10px] font-black ${isLeader ? 'text-yellow-400' : 'text-neutral-300'}`}>
-                          {progressPercent}%
-                        </span>
-                      </div>
+                    {isFlip7Scoreboard ? (
+                      <div className="hidden sm:flex flex-1 mx-8 max-w-xl md:max-w-3xl relative items-center gap-2 overflow-x-auto pb-1">
+                        {Array.from({ length: Math.max(currentTable?.currentRound || 1, maxHistoryLength) }).map((_, rIdx) => {
+                          const roundScore = player.history[rIdx];
+                          const hasBankedThisRound = roundScore !== undefined;
+                          const isBustedCurrently = !hasBankedThisRound && player.isBusted && rIdx === (currentTable?.currentRound || 1) - 1;
+                          const showBustedX = isBustedCurrently || (hasBankedThisRound && roundScore === 0);
+                          
+                          if (!hasBankedThisRound && !isBustedCurrently) return null;
 
-                      {/* Track */}
-                      <div className="h-3 w-full bg-neutral-950 border border-neutral-800/80 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-700 ease-out`}
-                          style={{ width: `${progressPercent}%` }}
-                        >
-                          <div className={`w-full h-full ${progressColorClass}`}></div>
+                          const isMax = hasBankedThisRound && roundScore > 0 && roundScore === maxScoresPerRound[rIdx];
+                          
+                          return (
+                            <div key={rIdx} className={`flex flex-col items-center justify-center p-2 rounded-xl border min-w-[48px] ${
+                              showBustedX 
+                                ? 'bg-error/10 border-error/50'
+                                : isMax 
+                                  ? 'bg-yellow-500/20 border-yellow-500/50 shadow-[0_0_10px_rgba(234,179,8,0.2)]' 
+                                  : 'bg-[#151413] border-neutral-800'
+                            }`}>
+                              <span className="text-[12px] font-mono uppercase text-neutral-500 mb-0.5">R{rIdx + 1}</span>
+                              <span className={`font-mono font-bold text-sm ${
+                                showBustedX 
+                                  ? 'text-error'
+                                  : isMax 
+                                    ? 'text-yellow-400' 
+                                    : 'text-neutral-300'
+                              }`}>
+                                {showBustedX ? 'X' : roundScore}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="hidden sm:flex flex-col flex-grow mx-8 max-w-xl md:max-w-3xl relative">
+                        {/* Label & percent */}
+                        <div className="flex justify-between items-center mb-1.5">
+                          <span className="font-mono text-[9px] font-bold text-neutral-400 uppercase tracking-wider">
+                            PROGRESS TO TARGET
+                          </span>
+                          <span className={`font-mono text-[10px] font-black ${isLeader ? 'text-yellow-400' : 'text-neutral-300'}`}>
+                            {progressPercent}%
+                          </span>
                         </div>
-                      </div>
 
-                      {/* BUSTED WATERMARK OVERLAY */}
-                      {player.isBusted && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 select-none">
-                          <div className="border-2 border-red-500/30 text-red-500/40 bg-red-950/10 px-4 py-1 rounded-lg text-lg md:text-2xl font-display font-black tracking-widest rotate-[-5deg] uppercase">
-                            BUSTED
+                        {/* Track */}
+                        <div className="h-3 w-full bg-neutral-950 border border-neutral-800/80 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-700 ease-out`}
+                            style={{ width: `${progressPercent}%` }}
+                          >
+                            <div className={`w-full h-full ${progressColorClass}`}></div>
                           </div>
                         </div>
-                      )}
-                    </div>
+
+                        {/* BUSTED WATERMARK OVERLAY */}
+                        {player.isBusted && (
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 select-none">
+                            <div className="border-2 border-red-500/30 text-red-500/40 bg-red-950/10 px-4 py-1 rounded-lg text-lg md:text-2xl font-display font-black tracking-widest rotate-[-5deg] uppercase">
+                              BUSTED
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Right Column: Total Score */}
                     <div className="text-right min-w-[70px] md:min-w-[120px]">
@@ -2588,17 +2721,7 @@ export default function Home() {
 
         {/* FOOTER */}
         <div className="w-full flex flex-col sm:flex-row justify-between items-center border-t border-neutral-800/60 pt-6 relative z-10 gap-4 mt-auto">
-          <div className="flex flex-wrap gap-3 items-center justify-center sm:justify-start">
-            <div className="bg-[#121110] border border-neutral-800 rounded-full px-4 py-2 font-mono text-[10px] text-neutral-300 flex items-center gap-1.5 uppercase tracking-wider">
-              <span className="text-yellow-400">⚡</span> HIGHEST COMBO: <span className="font-bold text-yellow-400">{getHighestComboVal()}</span>
-            </div>
-            
-            {hasActiveMatch && currentTable && (
-              <div className="bg-[#121110] border border-neutral-800 rounded-full px-4 py-2 font-mono text-[10px] text-neutral-300 flex items-center gap-1.5 uppercase tracking-wider">
-                <span>👥</span> {currentTable.players.length} PLAYERS REMAINING
-              </div>
-            )}
-          </div>
+          <div />
 
           <div className="flex items-center gap-3">
             <button
@@ -3084,8 +3207,8 @@ export default function Home() {
                       onClick={() => {
                         const gameConfig = GAMES.find((g) => g.id === selectedGame);
                         setNewTableName(`Torneio de ${gameConfig ? gameConfig.name : 'FLIP7'}`);
-                        setNewTargetScore(gameConfig ? gameConfig.defaultTarget : 100);
-                        setNewMaxRounds(gameConfig ? gameConfig.defaultMaxRounds : 7);
+                        setNewTargetScore(gameConfig ? (customGameSettings[gameConfig.id]?.targetScore ?? gameConfig.defaultTarget) : 100);
+                        setNewMaxRounds(gameConfig ? (customGameSettings[gameConfig.id]?.maxRounds ?? gameConfig.defaultMaxRounds) : 7);
                         setActiveTab('new_game');
                       }}
                       className="bg-primary-container text-on-primary-container font-mono text-xs font-bold tracking-wider uppercase px-4 py-2.5 rounded-xl flex items-center gap-2 primary-glow-hover active:scale-95 transition-all cursor-pointer"
@@ -3247,13 +3370,10 @@ export default function Home() {
 
                     <div className="flex items-center gap-4 mb-4">
                       <div className="w-14 h-14 rounded-full border-2 border-primary-container/40 overflow-hidden bg-surface-container-high relative flex-shrink-0">
-                        <Image
+                        <PlayerAvatar
                           src={p.avatar}
                           alt={p.name}
-                          fill
-                          sizes="56px"
-                          referrerPolicy="no-referrer"
-                          className="object-cover"
+                          className="w-full h-full rounded-full"
                         />
                       </div>
                       <div>
@@ -3475,7 +3595,12 @@ export default function Home() {
               {/* Right Column: Player Selection */}
               <div className="lg:col-span-7 space-y-4">
                 <div className="flex justify-between items-end px-2">
-                  <h4 className="font-mono text-xs font-bold text-primary uppercase tracking-wider">SELECIONAR JOGADORES ({selectedPlayerIds.length})</h4>
+                  <h4 className="font-mono text-xs font-bold text-primary uppercase tracking-wider">
+                    SELECIONAR JOGADORES ({selectedPlayerIds.length} / {(() => {
+                      const gc = GAMES.find(g => g.id === selectedGame);
+                      return gc ? (customGameSettings[gc.id]?.maxPlayers ?? gc.defaultMaxPlayers) : 8;
+                    })()})
+                  </h4>
                   <button
                     type="button"
                     onClick={() => setIsAddPlayerModalOpen(true)}
@@ -3499,13 +3624,10 @@ export default function Home() {
                         }`}
                       >
                         <div className="w-10 h-10 rounded-full overflow-hidden bg-surface-container-highest relative flex-shrink-0">
-                          <Image
+                          <PlayerAvatar
                             src={p.avatar}
                             alt={p.name}
-                            fill
-                            sizes="40px"
-                            referrerPolicy="no-referrer"
-                            className="object-cover"
+                            className="w-full h-full rounded-full"
                           />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -3606,13 +3728,10 @@ export default function Home() {
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-full border border-primary-container/20 overflow-hidden relative bg-surface-container-high">
-                                  <Image
+                                  <PlayerAvatar
                                     src={avatarUrl}
                                     alt={item.playerName}
-                                    fill
-                                    sizes="32px"
-                                    referrerPolicy="no-referrer"
-                                    className="object-cover"
+                                    className="w-full h-full rounded-full"
                                   />
                                 </div>
                                 <div>
@@ -3678,7 +3797,8 @@ export default function Home() {
                 return (
                   <div
                     key={p.id}
-                    className={`relative rounded-2xl overflow-hidden transition-all border-l-4 ${
+                    onClick={() => handlePlayerSelect(index)}
+                    className={`relative rounded-2xl overflow-hidden transition-all border-l-4 cursor-pointer hover:bg-surface-container-highest ${
                       p.isBusted
                         ? 'bg-surface-container-lowest border-error-container opacity-70'
                         : isActive && !isWinnerResult
@@ -3693,13 +3813,10 @@ export default function Home() {
                       
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-full overflow-hidden bg-surface-container-high relative border border-surface-variant flex-shrink-0">
-                          <Image
+                          <PlayerAvatar
                             src={p.avatar}
                             alt={p.name}
-                            fill
-                            sizes="48px"
-                            referrerPolicy="no-referrer"
-                            className="object-cover"
+                            className="w-full h-full rounded-full"
                           />
                         </div>
                         <div>
@@ -4206,6 +4323,98 @@ export default function Home() {
               </div>
             )}
 
+            {/* GAME SETTINGS CARD */}
+            <div className="bg-surface-container border border-surface-variant/40 rounded-3xl p-6 relative overflow-hidden">
+              <div className="absolute right-4 top-4 opacity-5">
+                <Settings className="w-16 h-16 text-primary" />
+              </div>
+              
+              <h3 className="font-display font-black text-lg text-primary uppercase mb-1">
+                Configurações de Jogos
+              </h3>
+              <p className="text-xs text-on-surface-variant mb-6">
+                Defina as regras padrão para cada tipo de jogo.
+              </p>
+
+              <div className="space-y-4">
+                {GAMES.map((game) => {
+                  const settings = customGameSettings[game.id] || {
+                    targetScore: game.defaultTarget,
+                    maxRounds: game.defaultMaxRounds,
+                    maxPlayers: game.defaultMaxPlayers,
+                  };
+
+                  const updateSetting = (key: keyof CustomGameSettings, value: number) => {
+                    setCustomGameSettings(prev => ({
+                      ...prev,
+                      [game.id]: {
+                        ...settings,
+                        [key]: value
+                      }
+                    }));
+                  };
+
+                  return (
+                    <div key={game.id} className="bg-background border border-outline-variant rounded-2xl overflow-hidden">
+                      <div 
+                        onClick={() => setExpandedSettingsGameId(expandedSettingsGameId === game.id ? null : game.id)}
+                        className="flex items-center justify-between p-4 cursor-pointer hover:bg-surface-container-low transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`px-2 py-1 rounded text-[10px] font-bold bg-gradient-to-br ${game.colorClass}`}>
+                            {game.badge}
+                          </div>
+                          <h4 className="font-display font-black text-sm text-on-surface uppercase">
+                            {game.name}
+                          </h4>
+                        </div>
+                        <div className="text-on-surface-variant">
+                          {expandedSettingsGameId === game.id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                        </div>
+                      </div>
+                      
+                      {expandedSettingsGameId === game.id && (
+                        <div className="p-4 pt-4 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-outline-variant bg-surface-container-lowest">
+                          <div>
+                            <label className="text-[10px] font-mono text-on-surface-variant uppercase font-bold mb-1 block">Meta de Pontos</label>
+                            <input 
+                              type="number" 
+                              min="1"
+                              value={settings.targetScore}
+                              onChange={(e) => updateSetting('targetScore', parseInt(e.target.value) || 1)}
+                              className="w-full bg-surface-container-high border border-surface-variant rounded-lg px-3 py-2 text-sm text-on-surface focus:border-primary outline-none font-mono"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="text-[10px] font-mono text-on-surface-variant uppercase font-bold mb-1 block">Limite de Rodadas</label>
+                            <input 
+                              type="number" 
+                              min="1"
+                              value={settings.maxRounds}
+                              onChange={(e) => updateSetting('maxRounds', parseInt(e.target.value) || 1)}
+                              className="w-full bg-surface-container-high border border-surface-variant rounded-lg px-3 py-2 text-sm text-on-surface focus:border-primary outline-none font-mono"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-mono text-on-surface-variant uppercase font-bold mb-1 block">Máx. Jogadores</label>
+                            <input 
+                              type="number" 
+                              min="2" max="20"
+                              value={settings.maxPlayers}
+                              onChange={(e) => updateSetting('maxPlayers', parseInt(e.target.value) || 2)}
+                              className="w-full bg-surface-container-high border border-surface-variant rounded-lg px-3 py-2 text-sm text-on-surface focus:border-primary outline-none font-mono"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* DATABASE & PERSISTENCE CARD */}
             <div className="bg-surface-container border border-surface-variant/40 rounded-3xl p-6 relative overflow-hidden">
               <div className="absolute right-4 top-4 opacity-5">
@@ -4408,13 +4617,10 @@ export default function Home() {
                             isSelected ? 'border-primary scale-110 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'
                           }`}
                         >
-                          <Image
+                          <PlayerAvatar
                             src={avatarUrl}
                             alt={`Avatar ${idx + 1}`}
-                            fill
-                            sizes="48px"
-                            referrerPolicy="no-referrer"
-                            className="object-cover"
+                            className="w-full h-full rounded-full"
                           />
                         </button>
                       );
@@ -4502,13 +4708,10 @@ export default function Home() {
                             isSelected ? 'border-primary scale-110 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'
                           }`}
                         >
-                          <Image
+                          <PlayerAvatar
                             src={avatarUrl}
                             alt={`Avatar ${idx + 1}`}
-                            fill
-                            sizes="48px"
-                            referrerPolicy="no-referrer"
-                            className="object-cover"
+                            className="w-full h-full rounded-full"
                           />
                         </button>
                       );
