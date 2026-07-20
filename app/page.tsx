@@ -469,7 +469,7 @@ const GAMES: GameConfig[] = [
     badge: 'F7',
     defaultTarget: 200,
     defaultMaxRounds: 7,
-    defaultMaxPlayers: 8,
+    defaultMaxPlayers: 7,
     imageUrl: 'https://picsum.photos/seed/flip7cards/200/200',
   },
   {
@@ -481,7 +481,7 @@ const GAMES: GameConfig[] = [
     badge: 'UNO',
     defaultTarget: 500,
     defaultMaxRounds: 10,
-    defaultMaxPlayers: 8,
+    defaultMaxPlayers: 7,
     imageUrl: 'https://picsum.photos/seed/unocards/200/200',
   },
   {
@@ -493,7 +493,7 @@ const GAMES: GameConfig[] = [
     badge: 'FLIP',
     defaultTarget: 500,
     defaultMaxRounds: 10,
-    defaultMaxPlayers: 8,
+    defaultMaxPlayers: 7,
     imageUrl: 'https://picsum.photos/seed/unoflip/200/200',
   },
   {
@@ -505,7 +505,7 @@ const GAMES: GameConfig[] = [
     badge: 'NO MERCY',
     defaultTarget: 1000,
     defaultMaxRounds: 15,
-    defaultMaxPlayers: 8,
+    defaultMaxPlayers: 7,
     imageUrl: 'https://picsum.photos/seed/unonomercy/200/200',
   },
   {
@@ -517,7 +517,7 @@ const GAMES: GameConfig[] = [
     badge: 'CATAN',
     defaultTarget: 10,
     defaultMaxRounds: 1,
-    defaultMaxPlayers: 8,
+    defaultMaxPlayers: 7,
     imageUrl: 'https://picsum.photos/seed/catanboard/200/200',
   },
   {
@@ -529,7 +529,7 @@ const GAMES: GameConfig[] = [
     badge: 'DADOS',
     defaultTarget: 350,
     defaultMaxRounds: 13,
-    defaultMaxPlayers: 8,
+    defaultMaxPlayers: 7,
     imageUrl: 'https://picsum.photos/seed/dicerolling/200/200',
   }
 ];
@@ -693,7 +693,7 @@ export default function Home() {
 
   // Authentication states
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [currentUser, setCurrentUser] = useState<{ email: string; name: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ email: string; name: string; isPlacarOnly?: boolean } | null>(null);
   const [loginEmail, setLoginEmail] = useState<string>('');
   const [loginPassword, setLoginPassword] = useState<string>('');
   const [isRegisterMode, setIsRegisterMode] = useState<boolean>(false);
@@ -727,9 +727,9 @@ export default function Home() {
   const [activeTable, setActiveTable] = useState<Table | null>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('flip7_active_table');
-      return stored ? JSON.parse(stored) : DEFAULT_ACTIVE_TABLE;
+      return stored ? JSON.parse(stored) : null;
     }
-    return DEFAULT_ACTIVE_TABLE;
+    return null;
   });
   const [dbHistory, setDbHistory] = useState<DBMatchHistory[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(false);
@@ -757,6 +757,7 @@ export default function Home() {
     return false;
   });
   const [isClearingHistory, setIsClearingHistory] = useState<boolean>(false);
+  const [isClosingTables, setIsClosingTables] = useState<boolean>(false);
   const [settingsMessage, setSettingsMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
 
@@ -820,7 +821,7 @@ export default function Home() {
 
       const parsedPlayers = storedPlayers ? JSON.parse(storedPlayers) : INITIAL_PLAYERS;
       const parsedHistory = storedHistory ? JSON.parse(storedHistory) : INITIAL_MATCHES;
-      const parsedActiveTable = storedActiveTable ? JSON.parse(storedActiveTable) : DEFAULT_ACTIVE_TABLE;
+      const parsedActiveTable = storedActiveTable ? JSON.parse(storedActiveTable) : null;
       const parsedDrawnCards = storedDrawnCards ? JSON.parse(storedDrawnCards) : [];
       let parsedUser = storedUser ? JSON.parse(storedUser) : null;
 
@@ -996,6 +997,44 @@ export default function Home() {
     }
   };
 
+  const handleCloseAllActiveTables = async () => {
+    if (!confirm("Tem certeza de que deseja fechar todas as mesas abertas?")) {
+      return;
+    }
+    
+    setIsClosingTables(true);
+    setSettingsMessage(null);
+    
+    try {
+      const response = await fetch('/api/active-table', {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        saveActiveTableToLocalStorage(null);
+        setSettingsMessage({ type: 'success', text: 'Todas as mesas abertas foram fechadas com sucesso!' });
+      } else {
+        setSettingsMessage({ type: 'error', text: data.error || 'Erro ao fechar as mesas.' });
+      }
+    } catch (err) {
+      console.error("Error closing tables:", err);
+      setSettingsMessage({ type: 'error', text: 'Erro de rede ou conexão ao fechar as mesas.' });
+    } finally {
+      setIsClosingTables(false);
+      setTimeout(() => {
+        setSettingsMessage(null);
+      }, 5000);
+    }
+  };
+
+
+  // Prevent navigation and force scoreboard tab for Placar user
+  useEffect(() => {
+    if (isLoggedIn && currentUser?.isPlacarOnly && activeTab !== 'fullscreen_scoreboard') {
+      setActiveTab('fullscreen_scoreboard');
+    }
+  }, [isLoggedIn, currentUser, activeTab]);
 
   // Dynamically fetch up-to-date players and history from database when changing tabs
   useEffect(() => {
@@ -1214,6 +1253,30 @@ export default function Home() {
     setAuthError('');
     if (!loginEmail.trim() || !loginPassword.trim()) {
       setAuthError('Por favor, preencha todos os campos.');
+      return;
+    }
+
+    const normalizedEmail = loginEmail.trim().toLowerCase();
+    const isPlacarUser = (normalizedEmail === 'placar' || normalizedEmail === 'placar@placar.com' || normalizedEmail === 'placar@flip7.com') && 
+                          (loginPassword.trim() === 'Placar' || loginPassword.trim() === 'placar');
+
+    if (isPlacarUser) {
+      const userSession = { email: 'placar@placar.com', name: 'Placar', isPlacarOnly: true };
+      localStorage.setItem('flip7_logged_in_user', JSON.stringify(userSession));
+      setCurrentUser(userSession);
+      setIsLoggedIn(true);
+      setActiveTab('fullscreen_scoreboard');
+      setLoginEmail('');
+      setLoginPassword('');
+      
+      // Request Fullscreen
+      try {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen();
+        }
+      } catch (err) {
+        console.error("Failed to request fullscreen:", err);
+      }
       return;
     }
 
@@ -2088,10 +2151,10 @@ export default function Home() {
                   E-mail do Jogador
                 </label>
                 <input
-                  type="email"
+                  type="text"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
-                  placeholder="ex: admin@flip7.com"
+                  placeholder="ex: admin@flip7.com ou Placar"
                   className="w-full bg-surface-container-high border border-surface-variant rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all"
                 />
               </div>
@@ -2276,12 +2339,22 @@ export default function Home() {
               </p>
             </div>
 
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className="px-5 py-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-mono text-xs uppercase tracking-wider rounded-xl border border-neutral-800 transition-all cursor-pointer flex items-center gap-2"
-            >
-              Voltar ao Painel
-            </button>
+            {!currentUser?.isPlacarOnly ? (
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className="px-5 py-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-mono text-xs uppercase tracking-wider rounded-xl border border-neutral-800 transition-all cursor-pointer flex items-center gap-2"
+              >
+                Voltar ao Painel
+              </button>
+            ) : (
+              <button
+                onClick={handleLogout}
+                className="px-5 py-3 bg-neutral-900 hover:bg-error-container/20 hover:text-error text-neutral-300 font-mono text-xs uppercase tracking-wider rounded-xl border border-neutral-800 transition-all cursor-pointer flex items-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Sair
+              </button>
+            )}
           </div>
 
           {/* TABLE LIST / SELECTION BODY */}
@@ -2315,15 +2388,19 @@ export default function Home() {
                   </div>
                 ) : (
                   <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-                    <button
-                      onClick={() => {
-                        handleQuickAddScore();
-                        setActiveTab('dashboard');
-                      }}
-                      className="px-5 py-3 bg-yellow-400 hover:bg-yellow-300 text-yellow-950 font-display font-black text-xs uppercase rounded-xl border-b-4 border-yellow-600 transition-all cursor-pointer"
-                    >
-                      Iniciar Mesa Rápida
-                    </button>
+                    {!currentUser?.isPlacarOnly ? (
+                      <button
+                        onClick={() => {
+                          handleQuickAddScore();
+                          setActiveTab('dashboard');
+                        }}
+                        className="px-5 py-3 bg-yellow-400 hover:bg-yellow-300 text-yellow-950 font-display font-black text-xs uppercase rounded-xl border-b-4 border-yellow-600 transition-all cursor-pointer"
+                      >
+                        Iniciar Mesa Rápida
+                      </button>
+                    ) : (
+                      <p className="text-xs font-mono text-neutral-500 uppercase tracking-wider py-4">Aguardando início de uma mesa pelo administrador...</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -2414,12 +2491,22 @@ export default function Home() {
                   Minha Mesa
                 </button>
               )}
-              <button
-                onClick={() => setActiveTab('dashboard')}
-                className="px-5 py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-mono text-xs uppercase rounded-xl border border-neutral-700 transition-all cursor-pointer"
-              >
-                Voltar ao Painel
-              </button>
+              {!currentUser?.isPlacarOnly ? (
+                <button
+                  onClick={() => setActiveTab('dashboard')}
+                  className="px-5 py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-mono text-xs uppercase rounded-xl border border-neutral-700 transition-all cursor-pointer"
+                >
+                  Voltar ao Painel
+                </button>
+              ) : (
+                <button
+                  onClick={handleLogout}
+                  className="px-5 py-3 bg-neutral-900 hover:bg-error-container/20 hover:text-error text-neutral-300 font-mono text-xs uppercase tracking-wider rounded-xl border border-neutral-800 transition-all cursor-pointer flex items-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sair
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -2428,7 +2515,7 @@ export default function Home() {
 
     const currentTable = viewingTable || activeTable;
     const isFlip7 = (currentTable?.game || selectedGame || 'flip7') === 'flip7';
-    const hasActiveMatch = currentTable && currentTable.status === 'active';
+    const hasActiveMatch = currentTable && (currentTable.status === 'active' || currentTable.status === 'completed');
     
     // Sort players by totalScore descending
     const sortedPlayers = hasActiveMatch && currentTable
@@ -2481,50 +2568,77 @@ export default function Home() {
       maxScoresPerRound.push(Math.max(0, ...scoresInRound));
     }
 
+    const playerCount = sortedPlayers.length;
+    
+    // Dynamic styling based on total active players on the scoreboard table (ideal for 10" tablet display)
+    let containerGapClass = 'space-y-3.5';
+    let cardPaddingClass = 'p-3.5 sm:p-4.5 md:p-5';
+    let avatarSizeClass = 'w-13 h-13 sm:w-14 sm:h-14 md:w-16 md:h-16';
+    let rankBadgeSizeClass = 'w-5 h-5 md:w-6 md:h-6 text-[9px] md:text-[10px]';
+    let nameTextClass = 'text-base sm:text-lg md:text-2xl';
+    let rankTextClass = 'text-[8px] md:text-[9px]';
+    let scoreTextClass = 'text-3xl md:text-5xl';
+    
+    if (playerCount > 4) {
+      if (playerCount <= 5) {
+        containerGapClass = 'space-y-2.5 sm:space-y-3';
+        cardPaddingClass = 'p-3 sm:p-3.5 md:p-4';
+        avatarSizeClass = 'w-11 h-11 sm:w-13 sm:h-13 md:w-14 md:h-14';
+        rankBadgeSizeClass = 'w-4.5 h-4.5 md:w-5 md:h-5 text-[8px] md:text-[9px]';
+        nameTextClass = 'text-base sm:text-md md:text-xl';
+        rankTextClass = 'text-[8px]';
+        scoreTextClass = 'text-2xl sm:text-3xl md:text-4xl';
+      } else { // 6 or 7 players
+        containerGapClass = 'space-y-1.5 sm:space-y-2';
+        cardPaddingClass = 'p-2 sm:p-2.5 md:p-3';
+        avatarSizeClass = 'w-9 h-9 sm:w-11 sm:h-11 md:w-12 md:h-12';
+        rankBadgeSizeClass = 'w-4 h-4 md:w-4.5 md:h-4.5 text-[7px] md:text-[8px]';
+        nameTextClass = 'text-sm sm:text-base md:text-lg';
+        rankTextClass = 'text-[7px] md:text-[8px]';
+        scoreTextClass = 'text-xl sm:text-2xl md:text-3xl';
+      }
+    }
+
     return (
-      <div className="min-h-screen text-white bg-[#0a0908] font-sans flex flex-col justify-between p-6 md:p-10 relative overflow-hidden select-none">
+      <div className="min-h-screen text-white bg-[#0a0908] font-sans flex flex-col justify-between p-4 sm:p-6 md:p-8 lg:p-10 relative overflow-hidden select-none">
         {/* Background Subtle Mesh Glows */}
         <div className="absolute top-[-25%] right-[-15%] w-[800px] h-[800px] bg-yellow-500/5 rounded-full blur-[160px] pointer-events-none"></div>
         <div className="absolute bottom-[-25%] left-[-15%] w-[800px] h-[800px] bg-purple-500/5 rounded-full blur-[160px] pointer-events-none"></div>
 
         {/* HEADER */}
-        <div className="w-full flex flex-col md:flex-row justify-between items-start md:items-center border-b border-neutral-800/60 pb-6 mb-8 relative z-10 gap-4">
+        <div className="w-full flex flex-col md:flex-row items-center justify-center border-b border-neutral-800/60 pb-3 mb-4 relative z-10 gap-2 text-center">
           <div>
-            <p className="font-mono text-xs font-black text-yellow-500 uppercase tracking-widest mb-1">
-              PLACAR AO VIVO - {currentTable?.name.toUpperCase() || ''}
-            </p>
-            <h1 className="font-display font-black text-3xl md:text-5xl text-yellow-400 tracking-tighter uppercase leading-none">
+            {currentTable?.name && (
+              <p className="font-mono text-xs font-black text-neutral-400 uppercase tracking-widest mb-1">
+                {currentTable.name.toUpperCase()}
+              </p>
+            )}
+            <h1 className="font-display font-black text-xl sm:text-2xl md:text-3xl text-yellow-400 tracking-tighter uppercase leading-none">
               {(GAMES.find((g) => g.id === (currentTable?.game || selectedGame))?.name || 'FLIP7').toUpperCase()} - PLACAR
             </h1>
           </div>
 
-          <div className="flex items-center gap-6 self-stretch md:self-auto justify-between md:justify-end border-t md:border-t-0 border-neutral-800 pt-4 md:pt-0">
-            {hasActiveMatch && currentTable ? (
-              <>
-                <div className="flex items-center gap-4 pr-6 border-r border-neutral-800">
-                  <div className="text-right">
-                    <p className="font-mono text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-0.5">ROUND</p>
-                    <p className="font-display font-black text-2xl md:text-3xl text-white tracking-tight">
-                      {currentTable.currentRound.toString().padStart(2, '0')} <span className="text-neutral-600">/</span> {currentTable.maxRounds.toString().padStart(2, '0')}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="font-mono text-[10px] font-bold text-yellow-500 uppercase tracking-wider mb-0.5">TARGET</p>
-                    <p className="font-display font-black text-2xl md:text-3xl text-yellow-400 tracking-tight">
-                      {currentTable.targetScore}
-                    </p>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="text-neutral-500 font-mono text-xs uppercase tracking-wider">
-                Sem Partida Ativa
+          {hasActiveMatch && currentTable ? (
+            <div className="md:absolute md:right-0 md:top-1/2 md:-translate-y-1/2 flex items-center gap-4 mt-2 md:mt-0 text-neutral-400 text-xs font-mono bg-neutral-900/40 border border-neutral-800/80 px-4 py-2 rounded-xl">
+              <div className="text-right">
+                <span className="text-neutral-500 text-[9px] block uppercase font-bold tracking-wider leading-none mb-0.5">ROUND</span>
+                <span className="font-display font-black text-white text-base">
+                  {currentTable.currentRound.toString().padStart(2, '0')}/{currentTable.maxRounds.toString().padStart(2, '0')}
+                </span>
               </div>
-            )}
-          </div>
+              <div className="w-px h-6 bg-neutral-800" />
+              <div className="text-right">
+                <span className="text-yellow-500 text-[9px] block uppercase font-bold tracking-wider leading-none mb-0.5">TARGET</span>
+                <span className="font-display font-black text-yellow-400 text-base">
+                  {currentTable.targetScore}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="md:absolute md:right-0 md:top-1/2 md:-translate-y-1/2 text-neutral-500 font-mono text-[10px] uppercase tracking-wider mt-2 md:mt-0">
+              Sem Partida Ativa
+            </div>
+          )}
         </div>
 
         {/* MAIN BODY / LIST OF PLAYERS */}
@@ -2552,16 +2666,61 @@ export default function Home() {
                 >
                   Selecionar Outra Mesa
                 </button>
-                <button
-                  onClick={() => setActiveTab('dashboard')}
-                  className="px-5 py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-mono text-xs uppercase rounded-xl border border-neutral-700 transition-all cursor-pointer"
-                >
-                  Voltar ao Painel
-                </button>
+                {!currentUser?.isPlacarOnly ? (
+                  <button
+                    onClick={() => setActiveTab('dashboard')}
+                    className="px-5 py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-mono text-xs uppercase rounded-xl border border-neutral-700 transition-all cursor-pointer"
+                  >
+                    Voltar ao Painel
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleLogout}
+                    className="px-5 py-3 bg-neutral-900 hover:bg-error-container/20 hover:text-error text-neutral-300 font-mono text-xs uppercase tracking-wider rounded-xl border border-neutral-800 transition-all cursor-pointer flex items-center gap-2"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sair
+                  </button>
+                )}
               </div>
             </div>
           ) : (
-            <div className="space-y-3.5 w-full">
+            <div className={`${containerGapClass} w-full`}>
+              {currentTable?.status === 'completed' && (
+                <div className="bg-gradient-to-br from-[#1b1510] to-[#120d18] border-2 border-yellow-500/40 rounded-3xl p-8 md:p-10 text-center space-y-6 shadow-[0_0_50px_rgba(234,179,8,0.15)] relative overflow-hidden z-20 animate-pop my-6 max-w-2xl mx-auto w-full animate-fadeIn">
+                  {/* Decorative glowing mesh balls */}
+                  <div className="absolute top-[-30%] left-[-20%] w-[350px] h-[350px] bg-yellow-500/10 rounded-full blur-[80px] pointer-events-none animate-pulse"></div>
+                  <div className="absolute bottom-[-30%] right-[-20%] w-[350px] h-[350px] bg-purple-600/10 rounded-full blur-[80px] pointer-events-none animate-pulse"></div>
+
+                  <div className="relative z-10 space-y-4">
+                    {/* Golden Trophy */}
+                    <div className="relative inline-block">
+                      <div className="absolute inset-0 bg-yellow-400/20 rounded-full blur-xl animate-pulse"></div>
+                      <Trophy className="relative w-20 h-20 md:w-24 md:h-24 text-yellow-400 mx-auto drop-shadow-[0_0_20px_rgba(234,179,8,0.6)] animate-bounce" />
+                    </div>
+
+                    <div className="space-y-1">
+                      <h2 className="font-display font-black text-xl md:text-3xl text-neutral-400 uppercase tracking-widest leading-none">
+                        PARTIDA CONCLUÍDA
+                      </h2>
+                      <p className="font-mono text-base font-black text-yellow-500 uppercase tracking-widest mt-1">
+                        🏆 Vencedor 🏆
+                      </p>
+                    </div>
+
+                    <div className="space-y-3 pt-2">
+                      <p className="font-display font-black text-7xl sm:text-8xl md:text-[10rem] lg:text-[12rem] text-yellow-400 uppercase tracking-tight leading-none drop-shadow-[0_4px_25px_rgba(0,0,0,0.7)] break-words py-4">
+                        {sortedPlayers[0]?.name || 'Ninguém'}
+                      </p>
+                      <div className="inline-block bg-[#0a0908]/90 border border-neutral-850 px-6 py-2.5 rounded-full shadow-inner">
+                        <p className="font-display font-black text-lg sm:text-xl md:text-2xl text-neutral-300 tracking-tight">
+                          {sortedPlayers[0]?.totalScore || 0} Pontos.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               {sortedPlayers.map((player, idx) => {
                 const rank = idx + 1;
                 const isLeader = idx === 0;
@@ -2588,7 +2747,7 @@ export default function Home() {
                 return (
                   <div
                     key={player.id}
-                    className={`relative rounded-2xl p-4 md:p-5 flex items-center justify-between border transition-all duration-300 ${
+                    className={`relative rounded-2xl ${cardPaddingClass} flex items-center justify-between border transition-all duration-300 ${
                       isLeader
                         ? 'bg-[#181613] border-yellow-500/40 shadow-[0_4px_25px_rgba(234,179,8,0.06)]'
                         : isItsTurn
@@ -2611,9 +2770,9 @@ export default function Home() {
                     )}
 
                     {/* Left Column: Avatar & Details */}
-                    <div className="flex items-center gap-4 min-w-[150px] md:min-w-[220px]">
+                    <div className="flex items-center gap-3 md:gap-4 min-w-[140px] md:min-w-[220px]">
                       <div className="relative">
-                        <div className={`w-14 h-14 md:w-16 md:h-16 rounded-full overflow-hidden border-2 flex items-center justify-center p-0.5 bg-neutral-900 ${
+                        <div className={`rounded-full overflow-hidden border-2 flex items-center justify-center p-0.5 bg-neutral-900 ${avatarSizeClass} ${
                           isLeader ? 'border-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.2)]' : isItsTurn ? 'border-emerald-500' : 'border-neutral-700'
                         }`}>
                           <PlayerAvatar
@@ -2622,18 +2781,15 @@ export default function Home() {
                             className="w-full h-full rounded-full"
                           />
                         </div>
-                        <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-neutral-900 border border-neutral-700 flex items-center justify-center font-mono font-black text-[10px] text-neutral-300">
+                        <div className={`absolute -bottom-1 -right-1 rounded-full bg-neutral-900 border border-neutral-700 flex items-center justify-center font-mono font-black text-neutral-300 ${rankBadgeSizeClass}`}>
                           #{rank}
                         </div>
                       </div>
 
                       <div className="min-w-0">
-                        <h3 className="font-display font-black text-lg md:text-2xl text-white tracking-tight truncate leading-tight uppercase">
+                        <h3 className={`font-display font-black text-white tracking-tight truncate leading-tight uppercase ${nameTextClass}`}>
                           {player.name}
                         </h3>
-                        <p className="font-mono text-[9px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">
-                          {player.isBusted ? 'ESTOUROU' : isLeader ? 'LÍDER RANK #1' : `COLOCAÇÃO #${rank}`}
-                        </p>
                       </div>
                     </div>
 
@@ -2708,7 +2864,7 @@ export default function Home() {
                     {/* Right Column: Total Score */}
                     <div className="text-right min-w-[70px] md:min-w-[120px]">
                       <p className="font-mono text-[9px] font-bold text-neutral-500 uppercase tracking-wider mb-0.5">TOTAL</p>
-                      <p className={`font-display font-black text-3xl md:text-5xl tracking-tight leading-none ${isLeader ? 'text-yellow-400' : 'text-white'}`}>
+                      <p className={`font-display font-black tracking-tight leading-none ${isLeader ? 'text-yellow-400' : 'text-white'} ${scoreTextClass}`}>
                         {player.totalScore}
                       </p>
                     </div>
@@ -2735,22 +2891,34 @@ export default function Home() {
               <span>Trocar Mesa</span>
             </button>
 
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className="px-5 py-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-mono text-xs uppercase tracking-wider rounded-xl border border-neutral-800 transition-all cursor-pointer flex items-center gap-2"
-            >
-              <Minimize2 className="w-4 h-4" />
-              <span>Sair Tela Cheia</span>
-            </button>
+            {!currentUser?.isPlacarOnly ? (
+              <>
+                <button
+                  onClick={() => setActiveTab('dashboard')}
+                  className="px-5 py-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-mono text-xs uppercase tracking-wider rounded-xl border border-neutral-800 transition-all cursor-pointer flex items-center gap-2"
+                >
+                  <Minimize2 className="w-4 h-4" />
+                  <span>Sair Tela Cheia</span>
+                </button>
 
-            {activeTable && activeTable.status === 'active' && (
+                {activeTable && activeTable.status === 'active' && (
+                  <button
+                    onClick={() => {
+                      setActiveTab('live');
+                    }}
+                    className="px-6 py-3.5 bg-yellow-400 hover:bg-yellow-300 text-yellow-950 font-display font-black text-xs uppercase tracking-wider rounded-xl border-b-4 border-yellow-600 transition-all cursor-pointer flex items-center gap-2 shadow-lg animate-pulse"
+                  >
+                    <span>Gerenciar Partida ⚔️</span>
+                  </button>
+                )}
+              </>
+            ) : (
               <button
-                onClick={() => {
-                  setActiveTab('live');
-                }}
-                className="px-6 py-3.5 bg-yellow-400 hover:bg-yellow-300 text-yellow-950 font-display font-black text-xs uppercase tracking-wider rounded-xl border-b-4 border-yellow-600 transition-all cursor-pointer flex items-center gap-2 shadow-lg animate-pulse"
+                onClick={handleLogout}
+                className="px-5 py-3 bg-neutral-900 hover:bg-error-container/20 hover:text-error text-neutral-300 font-mono text-xs uppercase tracking-wider rounded-xl border border-neutral-800 transition-all cursor-pointer flex items-center gap-2"
               >
-                <span>Gerenciar Partida ⚔️</span>
+                <LogOut className="w-4 h-4" />
+                <span>Sair</span>
               </button>
             )}
           </div>
@@ -4453,6 +4621,35 @@ export default function Home() {
                       <>
                         <Trash2 className="w-4 h-4" />
                         LIMPAR HISTÓRICO
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-background border border-outline-variant rounded-2xl">
+                  <div>
+                    <h4 className="font-display font-black text-sm text-on-surface uppercase">
+                      Fechar Todas as Mesas Abertas
+                    </h4>
+                    <p className="text-[11px] text-on-surface-variant max-w-md mt-0.5">
+                      Encerra e inativa todas as mesas que estão em andamento ou abertas tanto no servidor quanto no navegador.
+                    </p>
+                  </div>
+                  
+                  <button
+                    onClick={handleCloseAllActiveTables}
+                    disabled={isClosingTables}
+                    className="md:self-center py-2.5 px-5 bg-error hover:bg-error/80 disabled:bg-surface-variant text-white font-mono text-xs font-black tracking-wider uppercase rounded-xl border-b-2 border-red-950 hover:border-transparent active:translate-y-0.5 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed shadow-md shadow-error/10 shrink-0"
+                  >
+                    {isClosingTables ? (
+                      <>
+                        <span className="w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin"></span>
+                        FECHANDO...
+                      </>
+                    ) : (
+                      <>
+                        <X className="w-4 h-4" />
+                        FECHAR MESAS
                       </>
                     )}
                   </button>

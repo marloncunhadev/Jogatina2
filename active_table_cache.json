@@ -9,7 +9,7 @@
       "status": "inactive",
       "activePlayerIndex": 0,
       "createdAt": "2026-07-10T20:24:23.576Z",
-      "gameTimeSeconds": 896,
+      "gameTimeSeconds": 919,
       "players": [
         {
           "id": "sora",
@@ -183,6 +183,625 @@
       "activePlayerIndex": 0,
       "createdAt": "2026-07-10T19:48:43.797Z",
       "gameTimeSeconds": 0,
+      "game": "flip7"
+    },
+    "table_1784570703439": {
+      "id": "table_1784570703439",
+      "name": "jogatina1",
+      "targetScore": 200,
+      "maxRounds": 7,
+      "currentRound": 1,
+      "status": "inactive",
+      "players": [
+        {
+          "id": "custom_1783711088347",
+          "name": "Juan",
+          "avatar": "sprite:0",
+          "score": 0,
+          "isBusted": false,
+          "history": [],
+          "totalScore": 0
+        },
+        {
+          "id": "custom_1783710927211",
+          "name": "Julianna",
+          "avatar": "sprite:7",
+          "score": 0,
+          "isBusted": false,
+          "history": [],
+          "totalScore": 0
+        },
+        {
+          "id": "custom_1783710920570",
+          "name": "Marlon",
+          "avatar": "sprite:2",
+          "score": 0,
+          "isBusted": false,
+          "history": [],
+          "totalScore": 0
+        }
+      ],
+      "activePlayerIndex": 0,
+      "createdAt": "2026-07-20T18:05:03.439Z",
+      "gameTimeSeconds": 431,
+      "game": "flip7"
+    },
+    "table_1784571315554": {
+      "id": "table_1784571315554",
+      "name": "Torneio de segunda-feira",
+      "targetScore": 200,
+      "maxRounds": 7,
+      "currentRound": 2,
+      "status": "inactive",
+      "players": [
+        {
+          "id": "custom_1783711088347",
+          "name": "Juan",
+          "avatar": "sprite:0",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            12,
+            6
+          ],
+          "totalScore": 18
+        },
+        {
+          "id": "custom_1783710927211",
+          "name": "Julianna",
+          "avatar": "sprite:7",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            6
+          ],
+          "totalScore": 6
+        },
+        {
+          "id": "custom_1783710920570",
+          "name": "Marlon",
+          "avatar": "sprite:2",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            0
+          ],
+          "totalScore": 0
+        }
+      ],
+      "activePlayerIndex": 1,
+      "createdAt": "2026-07-20T18:15:15.558Z",
+      "gameTimeSeconds": 92,
+      "game": "flip7"
+    },
+    "table_1784571779583": {
+      "id": "table_1784571779583",
+      "name": "jogatina",
+      "targetScore": 200,
+      "maxRounds": 7,
+      "currentRound": 1,
+      "status": "inactive",
+      "players": [
+        {
+          "id": "custom_1783711088347",
+          "name": "Juan",
+          "avatar": "sprite:0",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            4
+          ],
+          "totalScore": 4
+        },
+        {
+          "id": "custom_1783710927211",
+          "name": "Julianna",
+          "avatar": "sprite:7",
+          "score": 0,
+          "isBusted": false,
+          "history": [],
+          "totalScore": 0
+        },
+        {
+          "id": "custom_1783710920570",
+          "name": "Marlon",
+          "avatar": "sprite:2",
+          "score": 0,
+          "isBusted": false,
+          "history": [],
+          "totalScore": 0
+        }
+      ],
+      "activePlayerIndex": 1,
+      "createdAt": "2026-07-20T18:22:59.583Z",
+      "gameTimeSeconds": 14,
+      "game": "flip7"
+    },
+    "table_1784571860431": {
+      "id": "table_1784571860431",
+      "name": "Teste",
+      "targetScore": 200,
+      "maxRounds": 7,
+      "currentRound": 3,
+      "status": "inactive",
+      "players": [
+        {
+          "id": "custom_1784571852261",
+          "name": "julia",
+          "avatar": "sprite:4",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            6,
+            6,
+            10
+          ],
+          "totalScore": 22
+        },
+        {
+          "id": "custom_1784571844406",
+          "name": "Victtor",
+          "avatar": "sprite:0",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            10,
+            161,
+            42
+          ],
+          "totalScore": 213
+        },
+        {
+          "id": "custom_1784571836574",
+          "name": "Deborah",
+          "avatar": "sprite:7",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            78,
+            0,
+            0
+          ],
+          "totalScore": 78
+        },
+        {
+          "id": "custom_1784571828191",
+          "name": "Carlos",
+          "avatar": "sprite:2",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            0,
+            0,
+            0
+          ],
+          "totalScore": 0
+        },
+        {
+          "id": "custom_1783711088347",
+          "name": "Juan",
+          "avatar": "sprite:0",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            0,
+            0,
+            0
+          ],
+          "totalScore": 0
+        },
+        {
+          "id": "custom_1783710927211",
+          "name": "Julianna",
+          "avatar": "sprite:7",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            0,
+            0,
+            0
+          ],
+          "totalScore": 0
+        },
+        {
+          "id": "custom_1783710920570",
+          "name": "Marlon",
+          "avatar": "sprite:2",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            0,
+            0,
+            0
+          ],
+          "totalScore": 0
+        }
+      ],
+      "activePlayerIndex": 6,
+      "createdAt": "2026-07-20T18:24:20.431Z",
+      "gameTimeSeconds": 227,
+      "game": "flip7"
+    },
+    "table_1784572376107": {
+      "id": "table_1784572376107",
+      "name": "Jogatina1",
+      "targetScore": 200,
+      "maxRounds": 7,
+      "currentRound": 4,
+      "status": "inactive",
+      "players": [
+        {
+          "id": "custom_1784571844406",
+          "name": "Victtor",
+          "avatar": "sprite:0",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            5,
+            11,
+            8,
+            177
+          ],
+          "totalScore": 201
+        },
+        {
+          "id": "custom_1784571828191",
+          "name": "Carlos",
+          "avatar": "sprite:2",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            5,
+            2,
+            42,
+            0
+          ],
+          "totalScore": 49
+        }
+      ],
+      "activePlayerIndex": 0,
+      "createdAt": "2026-07-20T18:32:56.107Z",
+      "gameTimeSeconds": 71,
+      "game": "flip7"
+    },
+    "table_1784572678614": {
+      "id": "table_1784572678614",
+      "name": "Teste1",
+      "targetScore": 200,
+      "maxRounds": 7,
+      "currentRound": 2,
+      "status": "inactive",
+      "players": [
+        {
+          "id": "custom_1784571844406",
+          "name": "Victtor",
+          "avatar": "sprite:0",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            75,
+            161
+          ],
+          "totalScore": 236
+        },
+        {
+          "id": "custom_1784571828191",
+          "name": "Carlos",
+          "avatar": "sprite:2",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            142,
+            0
+          ],
+          "totalScore": 142
+        }
+      ],
+      "activePlayerIndex": 0,
+      "createdAt": "2026-07-20T18:37:58.614Z",
+      "gameTimeSeconds": 24,
+      "game": "flip7"
+    },
+    "table_1784572796493": {
+      "id": "table_1784572796493",
+      "name": "jogatina2",
+      "targetScore": 200,
+      "maxRounds": 7,
+      "currentRound": 1,
+      "status": "inactive",
+      "players": [
+        {
+          "id": "custom_1784571844406",
+          "name": "Victtor",
+          "avatar": "sprite:0",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            201
+          ],
+          "totalScore": 201
+        },
+        {
+          "id": "custom_1784571828191",
+          "name": "Carlos",
+          "avatar": "sprite:2",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            0
+          ],
+          "totalScore": 0
+        }
+      ],
+      "activePlayerIndex": 0,
+      "createdAt": "2026-07-20T18:39:56.493Z",
+      "gameTimeSeconds": 14,
+      "game": "flip7"
+    },
+    "table_1784573020233": {
+      "id": "table_1784573020233",
+      "name": "Torneio de segunda-feira",
+      "targetScore": 200,
+      "maxRounds": 7,
+      "currentRound": 5,
+      "status": "inactive",
+      "players": [
+        {
+          "id": "custom_1784571844406",
+          "name": "Victtor",
+          "avatar": "sprite:0",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            42,
+            28,
+            9,
+            56,
+            66
+          ],
+          "totalScore": 201
+        },
+        {
+          "id": "custom_1784571828191",
+          "name": "Carlos",
+          "avatar": "sprite:2",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            0,
+            62,
+            0,
+            10,
+            7
+          ],
+          "totalScore": 79
+        }
+      ],
+      "activePlayerIndex": 1,
+      "createdAt": "2026-07-20T18:43:40.239Z",
+      "gameTimeSeconds": 38,
+      "game": "flip7"
+    },
+    "table_1784573172589": {
+      "id": "table_1784573172589",
+      "name": "Torneio de segunda-feira",
+      "targetScore": 200,
+      "maxRounds": 7,
+      "currentRound": 2,
+      "status": "inactive",
+      "players": [
+        {
+          "id": "custom_1784571844406",
+          "name": "Victtor",
+          "avatar": "sprite:0",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            134,
+            156
+          ],
+          "totalScore": 290
+        },
+        {
+          "id": "custom_1784571828191",
+          "name": "Carlos",
+          "avatar": "sprite:2",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            20,
+            15
+          ],
+          "totalScore": 35
+        }
+      ],
+      "activePlayerIndex": 1,
+      "createdAt": "2026-07-20T18:46:12.589Z",
+      "gameTimeSeconds": 25,
+      "game": "flip7"
+    },
+    "table_1784573262077": {
+      "id": "table_1784573262077",
+      "name": "Torneio de segunda-feira",
+      "targetScore": 200,
+      "maxRounds": 7,
+      "currentRound": 2,
+      "status": "inactive",
+      "players": [
+        {
+          "id": "custom_1784571844406",
+          "name": "Victtor",
+          "avatar": "sprite:0",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            78,
+            153
+          ],
+          "totalScore": 231
+        },
+        {
+          "id": "custom_1784571828191",
+          "name": "Carlos",
+          "avatar": "sprite:2",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            0,
+            0
+          ],
+          "totalScore": 0
+        }
+      ],
+      "activePlayerIndex": 0,
+      "createdAt": "2026-07-20T18:47:42.077Z",
+      "gameTimeSeconds": 19,
+      "game": "flip7"
+    },
+    "table_1784573333956": {
+      "id": "table_1784573333956",
+      "name": "Torneio de segunda-feira",
+      "targetScore": 200,
+      "maxRounds": 7,
+      "currentRound": 1,
+      "status": "inactive",
+      "players": [
+        {
+          "id": "custom_1784571844406",
+          "name": "Victtor",
+          "avatar": "sprite:0",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            201
+          ],
+          "totalScore": 201
+        },
+        {
+          "id": "custom_1784571828191",
+          "name": "Carlos",
+          "avatar": "sprite:2",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            0
+          ],
+          "totalScore": 0
+        }
+      ],
+      "activePlayerIndex": 0,
+      "createdAt": "2026-07-20T18:48:53.956Z",
+      "gameTimeSeconds": 20,
+      "game": "flip7"
+    },
+    "table_1784573358438": {
+      "id": "table_1784573358438",
+      "name": "Torneio de segunda-feira",
+      "targetScore": 200,
+      "maxRounds": 7,
+      "currentRound": 1,
+      "status": "inactive",
+      "players": [
+        {
+          "id": "custom_1784571844406",
+          "name": "Victtor",
+          "avatar": "sprite:0",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            201
+          ],
+          "totalScore": 201
+        },
+        {
+          "id": "custom_1784571828191",
+          "name": "Carlos",
+          "avatar": "sprite:2",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            0
+          ],
+          "totalScore": 0
+        }
+      ],
+      "activePlayerIndex": 0,
+      "createdAt": "2026-07-20T18:49:18.439Z",
+      "gameTimeSeconds": 14,
+      "game": "flip7"
+    },
+    "table_1784573397165": {
+      "id": "table_1784573397165",
+      "name": "Torneio de segunda-feira",
+      "targetScore": 200,
+      "maxRounds": 7,
+      "currentRound": 2,
+      "status": "inactive",
+      "players": [
+        {
+          "id": "custom_1784571844406",
+          "name": "Victtor",
+          "avatar": "sprite:0",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            78,
+            166
+          ],
+          "totalScore": 244
+        },
+        {
+          "id": "custom_1784571828191",
+          "name": "Carlos",
+          "avatar": "sprite:2",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            0,
+            0
+          ],
+          "totalScore": 0
+        }
+      ],
+      "activePlayerIndex": 1,
+      "createdAt": "2026-07-20T18:49:57.166Z",
+      "gameTimeSeconds": 22,
+      "game": "flip7"
+    },
+    "table_1784573631709": {
+      "id": "table_1784573631709",
+      "name": "Torneio de segunda-feira",
+      "targetScore": 200,
+      "maxRounds": 7,
+      "currentRound": 1,
+      "status": "inactive",
+      "players": [
+        {
+          "id": "custom_1784571844406",
+          "name": "Victtor",
+          "avatar": "sprite:0",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            201
+          ],
+          "totalScore": 201
+        },
+        {
+          "id": "custom_1784571828191",
+          "name": "Carlos",
+          "avatar": "sprite:2",
+          "score": 0,
+          "isBusted": false,
+          "history": [
+            0
+          ],
+          "totalScore": 0
+        }
+      ],
+      "activePlayerIndex": 0,
+      "createdAt": "2026-07-20T18:53:51.709Z",
+      "gameTimeSeconds": 35,
       "game": "flip7"
     }
   }

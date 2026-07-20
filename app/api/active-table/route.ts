@@ -142,4 +142,15 @@ export async function POST(req: NextRequest) {
   }
 }
 
+export async function DELETE() {
+  try {
+    await db.update(sala)
+      .set({ status: "inactive" })
+      .where(eq(sala.status, "active"));
+    return NextResponse.json({ success: true, message: "Todas as mesas foram fechadas." });
+  } catch (error) {
+    console.error("Failed to clear active tables in database:", error);
+    return NextResponse.json({ error: "Failed to clear active tables" }, { status: 500 });
+  }
+}
 
